@@ -91,7 +91,7 @@ public class BNetwork {
             String[] tableValues = variableElement.getElementsByTagName("TABLE").item(0).getNodeValue().split("\\s+");
 
             int variableKey = this.getVariableKey(name);
-            List<Integer> givenKeys = new LinkedList<>();
+            List<Integer> givenKeysOriginList = new LinkedList<>();
 
             for (int j = 0; j < givens.getLength(); j++) {
                 String givenName = givens.item(j).getTextContent();
@@ -99,22 +99,33 @@ public class BNetwork {
 
                 // not itself
                 if (variableKey != givenKey) {
-                    givenKeys.add(givenKey);
+                    givenKeysOriginList.add(givenKey);
                     this.relations[variableKey][givenKey] = true;
                 }
             }
 
             // load CPT
+            Integer[] givenKeysOrigin = new Integer[givenKeysOriginList.size()];
+            Integer[] givenKeysSorted = new Integer[givenKeysOriginList.size()];
+            givenKeysOriginList.toArray(givenKeysOrigin);
+            givenKeysOriginList.toArray(givenKeysSorted);
+
+            Arrays.sort(givenKeysSorted);
+
             int cptLength = this.variables[variableKey].getLength();
-            for (Integer givenKey: givenKeys) {
+
+            for (Integer givenKey: givenKeysOriginList) {
                 cptLength *= this.variables[givenKey].getLength();
             }
 
-            this.CPTs[variableKey] = new int[cptLength];
+            int[] cpt = this.CPTs[cptLength];
 
-            for (int j = 0; j < tableValues.length; j++) {
-                // TODO:
+            // fill the CPT
+            for (int j = 0; j < cptLength; j++) {
+                // TODO
             }
+
+            this.CPTs[variableKey] = cpt;
         }
     }
 
