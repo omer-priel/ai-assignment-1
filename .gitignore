@@ -1,11 +1,13 @@
 # IDE
 .idea
 
-# Tests
-outputs
-
-# Compiled build files
+# Build
 *.class
+out
+
+# Tests
+test-build
+outputs
 
 # Package Files #
 *.jar

@@ -1,30 +1,25 @@
-JAVAC="/usr/lib/jvm/java-1.8.0-openjdk-amd64/bin/javac"
-JAVA="/usr/lib/jvm/java-1.8.0-openjdk-amd64/bin/java"
+JAVAC="/usr/lib/jvm/java-8-openjdk-amd64/bin/javac"
+JAVA="/usr/lib/jvm/java-8-openjdk-amd64/bin/java"
 
 clean:
-	rm -rf *.class
+	rm -rf *.class out
+	rm -rf test-build outputs
 
-build:
-	$(JAVAC) *.java
-
-build-dev:
-	$(JAVAC) *.java
-
-start:
-	$(JAVA) Ex1
-
-test:
-	$(JAVA) Ex1 < input.txt > my_output.txt
-
-test-1: clean build
-	rm -rf outputs
+build: clean
+	cp -rf test test-build
+	cp src/** test-build
 	mkdir outputs
-	$(JAVA) Ex1 < inputs/alarm_net_input.txt > outputs/alarm_net_input.txt
+	cd test-build && $(JAVAC) *.java
 
-all-start: clean build start
+start: build
+	cd test-build && $(JAVA) Ex1
 
-all-test: clean build test
+test: build
+	cd test-build && $(JAVA) Ex1 < input.txt > my_output.txt
+
+test-1: build
+	cd test-build && $(JAVA) Ex1 < ../inputs/alarm_net_input.txt > ../outputs/alarm_net_input.txt
 
 publish:
-	rm -rf ID_ID.zip
-	zip ID_ID.zip *.java
+	rm -rf ../207964859.zip
+	zip ../207964859.zip *.java

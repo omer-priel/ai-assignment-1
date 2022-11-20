@@ -12,11 +12,7 @@ Run the following commands for start:
 
 ```bash
 cd ai-assignment-1
-make clean
-make build
-make start
-```
-
+make test
 Run the following commands fot the test network:
 
 ```bash
