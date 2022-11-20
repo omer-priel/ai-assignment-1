@@ -7,7 +7,7 @@ clean:
 
 build: clean
 	cp -rf test test-build
-	cp src/** test-build
+	cp src/*.java test-build
 	mkdir outputs
 	cd test-build && $(JAVAC) *.java
 
@@ -22,4 +22,4 @@ test-1: build
 
 publish:
 	rm -rf ../207964859.zip
-	zip ../207964859.zip *.java
+	zip ../207964859.zip src/*.java
