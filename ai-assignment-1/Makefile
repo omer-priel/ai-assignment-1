@@ -18,7 +18,7 @@ test: build
 	cd test-build && $(JAVA) Ex1 < input.txt > my_output.txt
 
 test-1: build
-	cd test-build && $(JAVA) Ex1 < ../inputs/alarm_net_input.txt > ../outputs/alarm_net_input.txt
+	cd test-build && $(JAVA) Ex1 < ../inputs/alarm_net_input.txt
 
 publish:
 	rm -rf ../207964859.zip
