@@ -25,8 +25,8 @@ public class BNetwork {
 
     // members
     Variable[] variables = null;
-    float[][] CPTs = null;
     boolean[][] relations = null;
+    float[][] CPTs = null;
 
     public BNetwork(String filepath) throws ParserConfigurationException, IOException, SAXException {
         // load XML
