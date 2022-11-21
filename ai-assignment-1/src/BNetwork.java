@@ -25,7 +25,7 @@ public class BNetwork {
 
     // members
     Variable[] variables = null;
-    boolean[][] relations = null;
+    int[][] parents = null;
     float[][] CPTs = null;
 
     public BNetwork(String filepath) throws ParserConfigurationException, IOException, SAXException {
@@ -71,17 +71,9 @@ public class BNetwork {
     private void initCPTs(Element network) {
         int variablesLen = this.variables.length;
 
-        this.relations = new boolean[variablesLen][variablesLen];
+        this.parents = new int[variablesLen][];
         this.CPTs = new float[variablesLen][];
 
-        for (int i = 0; i < variablesLen; i++) {
-            for (int j = 0; j < variablesLen; j++) {
-                this.relations[i][j] = false;
-            }
-        }
-
-        // load relations and CPTs from definitions
-        // Note - given is parent variable
         NodeList definitionsElements = network.getElementsByTagName("DEFINITION");
 
         for (int definitionIndex = 0; definitionIndex < definitionsElements.getLength(); definitionIndex++) {
@@ -96,11 +88,8 @@ public class BNetwork {
     }
 
     private void loadCPT(String name, NodeList parentsNodes, String[] tableValues) {
-        System.out.println("CPT of " + name);
-
-        // load the parents and relations
         int variableKey = this.getVariableKey(name);
-        List<Integer> parentsOriginList = new LinkedList<>();
+        List<Integer> parentsList = new LinkedList<>();
 
         for (int i = 0; i < parentsNodes.getLength(); i++) {
             String parentName = parentsNodes.item(i).getTextContent();
@@ -108,79 +97,20 @@ public class BNetwork {
 
             // not itself
             if (variableKey != parent) {
-                parentsOriginList.add(parent);
-                this.relations[variableKey][parent] = true;
+                parentsList.add(parent);
             }
         }
 
-        // load the CPT
-        Integer[] parentsOrigin = new Integer[parentsOriginList.size()];
-        Integer[] parentsSorted = new Integer[parentsOriginList.size()];
-        parentsOriginList.toArray(parentsOrigin);
-        parentsOriginList.toArray(parentsSorted);
+        this.parents[variableKey] = parentsList.stream().mapToInt(i->i).toArray();
 
-        Arrays.sort(parentsSorted);
-
-        // get cpt length and int the lengths of the parents variables
-        int cptLength = this.variables[variableKey].getLength();
-        for (int i = 0; i < parentsOrigin.length; i++) {
-            int originKey = parentsOrigin[i];
-            int givenSortedKey = parentsSorted[i];
-
-            parentsOrigin[i] = this.variables[originKey].getLength();
-            parentsSorted[i] = this.variables[givenSortedKey].getLength();
-
-            cptLength *= parentsOrigin[i];
+        this.CPTs[variableKey] = new float[tableValues.length];
+        for (int i = 0; i < tableValues.length; i++) {
+            this.CPTs[variableKey][i] = Float.parseFloat(tableValues[i]);
         }
-
-        float[] cpt = new float[cptLength];
-
-        // fill the CPT
-        int[] indexesArr = new int[parentsSorted.length];
-        Arrays.fill(indexesArr, 0);
-
-        int index = indexesArr.length;
-
-        int tableTargetIndex = 0;
-        do {
-            if (index < indexesArr.length && indexesArr.length > 0) {
-                if (indexesArr[index] == parentsOrigin[index]) {
-                    // back variable level
-                    indexesArr[index] = 0;
-                    index--;
-                } else {
-                    // next variable level
-                    indexesArr[index]++;
-                    index++;
-                }
-            } else {
-                int tableSourceIndex = 0;
-                int a = 1;
-                for (int i = 0; i < indexesArr.length; i++) {
-                    int value = indexesArr[indexesArr.length - 1 - i];
-
-                    tableSourceIndex += value * a;
-                    a *= parentsOrigin[i];
-                }
-
-                System.out.println(tableSourceIndex + ":" + tableTargetIndex);
-
-                for (int value = 0; value < this.variables[variableKey].getLength(); value++) {
-                    cpt[tableTargetIndex + value] = Float.parseFloat(tableValues[tableSourceIndex + value]);
-                }
-
-                tableTargetIndex++;
-                index--;
-            }
-        } while (index >= 0);
-
-        System.out.println("Add cpt: " + tableValues.length + "-" + cpt.length);
-
-        this.CPTs[variableKey] = cpt;
     }
 
     // getters
-    private int getVariableKey(String variableName) {
+    public int getVariableKey(String variableName) {
         for (int i = 0; i < variables.length; i++) {
             if (variables[i].getName().equals(variableName)) {
                 return i;
@@ -188,5 +118,36 @@ public class BNetwork {
         }
 
         return -1;
+    }
+
+    public Variable getVariable(int key) {
+        return this.variables[key];
+    }
+
+    // call queries
+    public void callQuery(Query query) {
+        switch (query.type) {
+            case 1:
+                callQuery1(query);
+                break;
+            case 2:
+                callQuery2(query);
+                break;
+            case 3:
+                callQuery3(query);
+                break;
+        }
+    }
+
+    public void callQuery1(Query query) {
+        // TODO
+    }
+
+    public void callQuery2(Query query) {
+        // TODO
+    }
+
+    public void callQuery3(Query query) {
+        // TODO
     }
 }
