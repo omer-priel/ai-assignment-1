@@ -24,6 +24,6 @@ public class Variable {
     }
 
     public int getLength() {
-        return this.getLength();
+        return this.values.length;
     }
 }

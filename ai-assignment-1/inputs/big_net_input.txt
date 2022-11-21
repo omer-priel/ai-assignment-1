@@ -1,0 +1,4 @@
+../inputs/big_net.xml
+P(A2=T|B1=F,C2=v2),1
+P(A2=T|B1=F,C2=v2),2
+P(A2=T|B1=F,C2=v2),3

@@ -20,6 +20,9 @@ test: build
 test-1: build
 	cd test-build && $(JAVA) Ex1 < ../inputs/alarm_net_input.txt
 
+test-2: build
+	cd test-build && $(JAVA) Ex1 < ../inputs/big_net_input.txt
+
 publish:
 	rm -rf ../207964859.zip
 	zip ../207964859.zip src/*.java
