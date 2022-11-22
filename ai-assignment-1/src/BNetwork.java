@@ -140,7 +140,62 @@ public class BNetwork {
     }
 
     public void callQuery1(Query query) {
-        // TODO
+        float probability = 0;
+
+        // init
+        int[] hidden = getHidden(query);
+
+        int[] values = new int[this.variables.length];
+        Arrays.fill(values, -1);
+
+        values[query.queryVarible] = query.queryValue;
+        for (int i = 0; i < query.evidencesVaribles.length; i++) {
+            values[query.evidencesVaribles[i]] = query.evidencesValues[i];
+        }
+
+        // get probability
+        StringBuilder rul = new StringBuilder("");
+
+        int k = 0;
+        do {
+            if (k == hidden.length) {
+                // get probability of one value of hidden variables
+                float subProbability = 1;
+                rul.append("(1");
+                for (int i = 0; i < this.variables.length; i++) {
+                    int cptIndex = values[i];
+                    int jump = this.variables[i].getLength();
+
+                    for (int j = 0; j < this.parents[i].length; j++) {
+                        int parentKey = this.parents[i][j];
+                        cptIndex += values[parentKey] * jump;
+                        jump *= this.variables[parentKey].getLength();
+                    }
+                    subProbability *= this.CPTs[i][cptIndex];
+                    rul.append(" * ");
+                    rul.append(this.CPTs[i][cptIndex]);
+                    System.out.println(String.format("%.05f", this.CPTs[i][cptIndex]));
+                }
+
+                probability += subProbability;
+                rul.append(") + ");
+                System.out.println(String.format("%.05f", probability));
+
+                k--;
+            } else {
+                if (values[hidden[k]] == this.variables[hidden[k]].getLength() - 1) {
+                    values[hidden[k]] = -1;
+                    k--;
+                } else {
+                    values[hidden[k]]++;
+                    k++;
+                }
+            }
+        } while (k >= 0);
+
+        // printing the results
+        System.out.println(String.format("%.05f", probability));
+        System.out.println(rul);
     }
 
     public void callQuery2(Query query) {
@@ -149,5 +204,28 @@ public class BNetwork {
 
     public void callQuery3(Query query) {
         // TODO
+    }
+
+    // utils
+    private int[] getHidden(Query query) {
+        int[] hidden = new int[this.variables.length - 1 - query.evidencesVaribles.length];
+
+        boolean[] isHidden = new boolean[this.variables.length];
+        Arrays.fill(isHidden, true);
+
+        isHidden[query.queryVarible] = false;
+        for (int key: query.evidencesVaribles) {
+            isHidden[key] = false;
+        }
+
+        int k = 0;
+        for (int i = 0; i < isHidden.length; i++) {
+            if (isHidden[i]) {
+                hidden[k] = i;
+                k++;
+            }
+        }
+
+        return hidden;
     }
 }
