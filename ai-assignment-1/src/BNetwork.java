@@ -158,7 +158,12 @@ public class BNetwork {
         double probability = probabilities[query.queryValue] / a;
 
         // printing the results
-        System.out.println(String.format("%.05f,%d,%d", probability, additions, multiplies));
+        System.out.println(String.format("%.07f,%d,%d", probability, additions, multiplies));
+
+        for (int i = 0; i < probabilities.length; i++) {
+            System.out.println(String.format("%d = %.07f", i, probabilities[i]));
+        }
+        System.out.println(String.format("a = %.07f", a));
     }
 
     // call query
@@ -315,12 +320,19 @@ public class BNetwork {
                 // load the factor probabilities
                 List<Double> factorProbabilities = new LinkedList<>();
 
+                Collections.reverse(changeableVariablesIndexes);
+
                 int k = 0;
                 do {
                     if (k == changeableVariablesIndexes.size()) {
                         // add new factor probability
                         int cptIndex = values[0];
                         int jump = 1;
+
+                        for (int i = 0; i < values.length; i++) {
+                            System.out.print(values[i] + ", ");
+                        }
+                        System.out.println();
 
                         for (int j = 1; j < originVariables.size(); j++) {
                             int originVariable = originVariables.get(j - 1);
@@ -344,6 +356,8 @@ public class BNetwork {
                         }
                     }
                 } while (k >= 0);
+
+                System.out.println();
 
                 // add the factor
                 Factor factor = new Factor(this, factorVariables, factorProbabilities);
