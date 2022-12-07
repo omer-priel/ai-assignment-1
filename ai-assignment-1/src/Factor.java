@@ -1,15 +1,17 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 public class Factor {
     private BNetwork network;
     public List<Integer> variables;
-    public List<List<Integer>> values;
     public List<Float> probabilities;
 
-    public Factor( BNetwork network) {
+    public Factor( BNetwork network, List<Integer> variables, List<Float> probabilities) {
         this.network = network;
+        this.variables = variables;
+        this.probabilities = probabilities;
     }
 
     // getters
@@ -26,7 +28,7 @@ public class Factor {
     // setters
 
     // utils
-    private List<Integer> unionGroups(List<Integer> groupA, List<Integer> groupB) {
+    static public List<Integer> unionGroups(List<Integer> groupA, List<Integer> groupB) {
         List<Integer> union = new LinkedList<>(groupA);
 
         for (int i = 0; i < groupB.size(); i++) {
@@ -43,7 +45,7 @@ public class Factor {
         return union;
     }
 
-        private List<Integer> cutGroups(List<Integer> groupA, List<Integer> groupB) {
+    static public List<Integer> cutGroups(List<Integer> groupA, List<Integer> groupB) {
         List<Integer> both = new LinkedList<>(groupA);
 
         int i = 0;
@@ -64,13 +66,74 @@ public class Factor {
     }
 
     // actions
-    public void join(Factor other) {
-        // get the union and cut of the factors variables
-        List<Integer> unionVariables = unionGroups(this.variables, other.variables);
-        List<Integer> bothVariables = cutGroups(this.variables, other.variables);
+    static public Factor join(Factor factorA, Factor factorB) {
+        BNetwork network = factorA.network;
 
-        //
+        // get the factor variables
+        List<Integer> factorVariables = unionGroups(factorA.variables, factorB.variables);
 
+        // get the probabilities
+        List<Float> factorProbabilities = new LinkedList<>();
+
+        int[] values = new int[factorVariables.size()];
+        Arrays.fill(values, -1);
+
+        int[] indexesA = new int[factorA.variables.size()];
+        for (int i = 0; i < indexesA.length; i++) {
+            indexesA[i] = factorVariables.indexOf(factorA.variables.get(i));
+        }
+
+        int[] indexesB = new int[factorB.variables.size()];
+        for (int i = 0; i < indexesB.length; i++) {
+            indexesB[i] = factorVariables.indexOf(factorB.variables.get(i));
+        }
+
+        int k = 0;
+        do {
+            if (k == values.length) {
+                // add new probability to the new factor
+                int cptIndexA = 0;
+                int jumpA = 1;
+                int cptIndexB = 0;
+                int jumpB = 1;
+
+                for (int i = 0; i < factorA.variables.size(); i++) {
+                    int variable = factorA.variables.get(i);
+
+                    cptIndexA += values[indexesA[i]] * jumpA;
+
+                    jumpA *= network.variables[variable].getLength();
+                }
+
+                for (int i = 0; i < factorB.variables.size(); i++) {
+                    int variable = factorB.variables.get(i);
+
+                    cptIndexB += values[indexesB[i]] * jumpB;
+
+                    jumpB *= network.variables[variable].getLength();
+                }
+
+                float probabilityA = factorA.probabilities.get(cptIndexA);
+                float probabilityB = factorB.probabilities.get(cptIndexB);
+
+                factorProbabilities.add(probabilityA * probabilityB);
+
+                k--;
+            } else {
+                if (values[k] == network.variables[factorVariables.get(k)].getLength() - 1) {
+                    values[k] = -1;
+                    k--;
+                } else {
+                    values[k]++;
+                    k++;
+                }
+            }
+        } while (k >= 0);
+
+        // create the factor
+        Factor factor = new Factor(network, factorVariables, factorProbabilities);
+
+        return factor;
     }
 
 //    public void combine(int variableKey) {

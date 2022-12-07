@@ -10,7 +10,7 @@ class Ex1 {
 
   static private Scanner scanner = new Scanner(System.in);
 
-  private static void setTestsValues() {
+  private static void setTestsInputs() {
     String input = "alarm_net.xml\n" +
             "P(B=T|J=T,M=T),2";
     InputStream inputStream = new ByteArrayInputStream(input.getBytes());
@@ -18,7 +18,7 @@ class Ex1 {
   }
 
   public static void main(String[] args) throws ParserConfigurationException, IOException, SAXException {
-    setTestsValues();
+    setTestsInputs();
 
     String networkPath = scanner.nextLine();
     System.out.println(networkPath);

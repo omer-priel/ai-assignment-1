@@ -23,9 +23,9 @@ public class BNetwork {
     }
 
     // members
-    private Variable[] variables = null;
-    private int[][] parents = null;
-    private float[][] CPTs = null;
+    public Variable[] variables = null;
+    public int[][] parents = null;
+    public float[][] CPTs = null;
 
     public BNetwork(String filepath) throws ParserConfigurationException, IOException, SAXException {
         // load XML
@@ -238,120 +238,121 @@ public class BNetwork {
     }
 
     // callQuery2
-    private List<Factor> callQuery2CreateFactors(Query query, List<Integer> hiddenVariables) {
-        // create factors
-        List<Factor> factors = new LinkedList<>();
-        for (int variableIndex = 0; variableIndex < this.variables.length; variableIndex++) {
-            Variable variable = this.getVariable(variableIndex);
-            Factor factor = new Factor(this);
-
-            // set variables
-            factor.variables = new LinkedList<>();
-            factor.variables.add(variableIndex);
-            for (int j = 0; j < this.parents[variableIndex].length; j++) {
-                factor.variables.add(this.parents[variableIndex][j]);
-            }
-
-            // set values and probabilities
-            factor.values = new LinkedList<>();
-            factor.probabilities = new LinkedList<>();
-
-            int[] values = new int[this.variables.length];
-            Arrays.fill(values, -1);
-
-            for (int i = 0; i < query.evidencesVaribles.length; i++) {
-                values[query.evidencesVaribles[i]] = query.evidencesValues[i];
-            }
-
-            List<Integer> possibleVariables = new LinkedList<>();
-
-            possibleVariables.add(query.queryVarible);
-            possibleVariables.addAll(hiddenVariables);
-
-            int k = 0;
-            do {
-                if (k == possibleVariables.size()) {
-                    // add probabilityValues and probability
-                    List<Integer> probabilityValues = new LinkedList<>();
-                    float probability = 0;
-
-                    // get probabilityValues
-                    for (int i = 0; i < factor.variables.size(); i++) {
-                        probabilityValues.add(values[factor.variables.get(i)]);
-                    }
-
-                    // get probability from CPT
-                    int cptIndex = values[variableIndex];
-                    int jump = this.variables[variableIndex].getLength();
-
-                    for (int i = 0; i < this.parents[variableIndex].length; i++) {
-                        int parentKey = this.parents[variableIndex][i];
-                        cptIndex += values[parentKey] * jump;
-                        jump *= this.variables[parentKey].getLength();
-                    }
-
-                    probability = this.CPTs[variableIndex][cptIndex];
-
-                    // create new line in the factor
-                    factor.values.add(probabilityValues);
-                    factor.probabilities.add(probability);
-
-                    // next
-                    k--;
-                } else {
-                    if (values[possibleVariables.get(k)] == this.variables[possibleVariables.get(k)].getLength() - 1) {
-                        values[possibleVariables.get(k)] = -1;
-                        k--;
-                    } else {
-                        values[possibleVariables.get(k)]++;
-                        k++;
-                    }
-                }
-            } while (k >= 0);
-
-            // add the new factor
-            factors.add(factor);
-        }
-
-        return factors;
-    }
-
-    private void callQuery2RemoveLeavesFactors(List<Factor> factors, List<Integer> hiddenVariables) {
+    private void callQuery2RemoveLeavesFactors(List<Integer> net, List<Integer> hiddenVariables) {
         int hiddenIndex = 0;
         while (hiddenIndex < hiddenVariables.size()) {
-            int hidden = hiddenVariables.get(hiddenIndex);
-            int factorIndex = -1;
+            Integer hidden = hiddenVariables.get(hiddenIndex);
 
-            for (int i = 0; i < factors.size() && factorIndex == -1; i++) {
-                if (factors.get(i).variables.get(0) == hidden) {
-                    factorIndex = i;
-                }
-            }
+            boolean isLeave = true;
 
-            if (factorIndex == -1) {
-                hiddenVariables.remove(hiddenIndex);
-                hiddenIndex = 0;
-            } else {
-                boolean isLeave = true;
-                for (int i = 0; i < factors.size() && isLeave; i++) {
-                    if (factorIndex != i) {
-                        if (factors.get(i).variableExists(hidden)) {
+            for (int i = 0; i < net.size() && isLeave; i++) {
+                int node = net.get(i);
+                if (node != hidden) {
+                    for (int j = 0; j < this.parents[node].length && isLeave; j++) {
+                        if (this.parents[node][j] == hidden) {
                             isLeave = false;
                         }
                     }
                 }
+            }
 
-                if (isLeave) {
-                    hiddenVariables.remove(hiddenIndex);
-                    factors.remove(factorIndex);
-                    hiddenIndex = 0;
-                } else {
-                    hiddenIndex++;
-                }
+            if (isLeave) {
+                hiddenVariables.remove(hidden);
+                net.remove(hidden);
+
+                hiddenIndex = 0;
+            } else {
+                hiddenIndex++;
             }
         }
     }
 
+    private List<Factor> callQuery2CreateFactors(Query query, List<Integer> netAsList, List<Integer> hiddenVariables) {
+        // net to
+        Integer[] net = new Integer[netAsList.size()];
+        netAsList.toArray(net);
+
+        // create factors
+        List<Factor> factors = new LinkedList<>();
+
+        for (int variableIndex = 0; variableIndex < net.length; variableIndex++) {
+            // init
+            Integer factorVariable = net[variableIndex];
+            int[] parents = this.parents[factorVariable];
+
+            // load the factor variables
+            List<Integer> factorVariables = new LinkedList<>();
+
+            List<Integer> originVariables = new LinkedList<>();
+            originVariables.add(factorVariable);
+            originVariables.addAll(Arrays.stream(parents).boxed().collect(Collectors.toList()));
+
+            int[] values = new int[originVariables.size()];
+            Arrays.fill(values, -1);
+            List<Integer> changeableVariablesIndexes = new LinkedList<>();
+
+            for (int i = 0; i < originVariables.size(); i++) {
+                Integer variable = originVariables.get(i);
+                boolean isEvidence = false;
+
+                for (int j = 0; j < query.evidencesVaribles.length && !isEvidence; j++) {
+                    int evidencesVariable = query.evidencesVaribles[j];
+
+                    if (variable.equals(evidencesVariable)) {
+                        isEvidence = true;
+                        values[i] = query.evidencesValues[j];
+                    }
+                }
+
+                if (!isEvidence) {
+                    factorVariables.add(variable);
+                    changeableVariablesIndexes.add(i);
+                }
+            }
+
+            // only factors with variables (factors with more then one probability).
+            if (factorVariables.size() > 0) {
+                // load the factor probabilities
+                List<Float> factorProbabilities = new LinkedList<>();
+
+                int k = 0;
+                do {
+                    if (k == changeableVariablesIndexes.size()) {
+                        // add new factor probability
+                        int cptIndex = values[0];
+                        int jump = 1;
+
+                        for (int j = 1; j < originVariables.size(); j++) {
+                            int originVariable = originVariables.get(j - 1);
+
+                            jump *= this.variables[originVariable].getLength();
+
+                            cptIndex += values[j] * jump;
+                        }
+
+                        factorProbabilities.add(this.CPTs[factorVariable][cptIndex]);
+
+                        k--;
+                    } else {
+                        int variableKey = originVariables.get(changeableVariablesIndexes.get(k));
+                        if (values[changeableVariablesIndexes.get(k)] == this.variables[variableKey].getLength() - 1) {
+                            values[changeableVariablesIndexes.get(k)] = -1;
+                            k--;
+                        } else {
+                            values[changeableVariablesIndexes.get(k)]++;
+                            k++;
+                        }
+                    }
+                } while (k >= 0);
+
+                // add the factor
+                Factor factor = new Factor(this, factorVariables, factorProbabilities);
+                factors.add(factor);
+            }
+        }
+
+        return factors;
+    }
 
     public void callQuery2(Query query){
         // init
@@ -364,11 +365,15 @@ public class BNetwork {
         List<Integer> hiddenVariables = Arrays.stream(getHidden(query)).boxed().collect(Collectors.toList());
 
         // calc
-        // create factors
-        List<Factor> factors = callQuery2CreateFactors(query, hiddenVariables);
+        List<Integer> net = new LinkedList<>(hiddenVariables);
+        net.add(query.queryVarible);
+        net.addAll(Arrays.stream(query.evidencesVaribles).boxed().collect(Collectors.toList()));
 
         // remove unuseful hidden variables
-        callQuery2RemoveLeavesFactors(factors, hiddenVariables);
+        callQuery2RemoveLeavesFactors(net, hiddenVariables);
+
+        // create factors
+        List<Factor> factors = callQuery2CreateFactors(query, net, hiddenVariables);
 
         // remove hidden variables
         while (!hiddenVariables.isEmpty()) {
@@ -378,26 +383,20 @@ public class BNetwork {
 
             // collect factors with the hidden to single factor
             List<Factor> factorsToJoin = new LinkedList<>();
-            List<Integer> variables = new LinkedList<>();
             for (int i = 0; i < factors.size(); i++) {
                 Factor factor = factors.get(i);
                 if (factor.variableExists(hidden)) {
                     factorsToJoin.add(factor);
                     factors.remove(i);
-
-                    variables.addAll(factor.variables);
                 }
             }
 
             if (factorsToJoin.size() > 0) {
                 // join the Factors
-                variables = new LinkedList<>(new HashSet<>(variables));
-                variables.remove(Integer.valueOf(hidden));
-
                 Factor joinedFactor = factorsToJoin.get(0);
                 factorsToJoin.remove(0);
                 while (!factorsToJoin.isEmpty()) {
-                    joinedFactor.join(factorsToJoin.get(0));
+                    joinedFactor = Factor.join(joinedFactor, factorsToJoin.get(0));
                     factorsToJoin.remove(0);
                 }
 
