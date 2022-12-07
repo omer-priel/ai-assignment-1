@@ -10,8 +10,16 @@ class Ex1 {
 
   static private Scanner scanner = new Scanner(System.in);
 
+  // testing
+  public static void printJavaVersion() {
+    // Print java version
+    String version = System.getProperty("java.version");
+    System.out.println("java version: " + version);
+  }
+
   private static void setTestsInputs() {
     String input = "alarm_net.xml\n" +
+            "P(B=T|J=T,M=T),1\n" +
             "P(B=T|J=T,M=T),2";
     InputStream inputStream = new ByteArrayInputStream(input.getBytes());
     scanner = new Scanner(inputStream);
@@ -33,11 +41,5 @@ class Ex1 {
 
       network.callQuery(query);
     }
-  }
-
-  public static void printVersion() {
-    // Print java version
-    String version = System.getProperty("java.version");
-    System.out.println("java version: " + version);
   }
 }

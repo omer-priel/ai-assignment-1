@@ -6,23 +6,17 @@ import java.util.List;
 public class Factor {
     private BNetwork network;
     public List<Integer> variables;
-    public List<Float> probabilities;
+    public List<Double> probabilities;
 
-    public Factor( BNetwork network, List<Integer> variables, List<Float> probabilities) {
+    public Factor( BNetwork network, List<Integer> variables, List<Double> probabilities) {
         this.network = network;
         this.variables = variables;
         this.probabilities = probabilities;
     }
 
     // getters
-    public boolean variableExists(int variable) {
-        for (Integer item: this.variables) {
-            if (item == variable) {
-                return true;
-            }
-        }
-
-        return false;
+    public boolean variableExists(Integer variable) {
+        return this.variables.indexOf(variable) != -1;
     }
 
     // setters
@@ -73,7 +67,7 @@ public class Factor {
         List<Integer> factorVariables = unionGroups(factorA.variables, factorB.variables);
 
         // get the probabilities
-        List<Float> factorProbabilities = new LinkedList<>();
+        List<Double> factorProbabilities = new LinkedList<>();
 
         int[] values = new int[factorVariables.size()];
         Arrays.fill(values, -1);
@@ -113,8 +107,8 @@ public class Factor {
                     jumpB *= network.variables[variable].getLength();
                 }
 
-                float probabilityA = factorA.probabilities.get(cptIndexA);
-                float probabilityB = factorB.probabilities.get(cptIndexB);
+                double probabilityA = factorA.probabilities.get(cptIndexA);
+                double probabilityB = factorB.probabilities.get(cptIndexB);
 
                 factorProbabilities.add(probabilityA * probabilityB);
 
@@ -134,6 +128,45 @@ public class Factor {
         Factor factor = new Factor(network, factorVariables, factorProbabilities);
 
         return factor;
+    }
+
+    static public Factor eliminate(Factor factor, Integer variable) {
+        List<Integer> variables = new ArrayList<>(factor.variables);
+        variables.remove(variable);
+
+        // get the probabilities
+        List<Double> probabilities = new ArrayList<>();
+
+        int jumpS = 1;
+        int variableLength;
+        int jumpE = 1;
+
+        int factorVariableIndex = 0;
+        while (!factor.variables.get(factorVariableIndex).equals(variable)) {
+            jumpS *= factor.network.variables[factor.variables.get(factorVariableIndex)].getLength();
+            factorVariableIndex++;
+        }
+
+        variableLength = factor.network.variables[factor.variables.get(factorVariableIndex)].getLength();
+        factorVariableIndex++;
+
+        while (factorVariableIndex < factor.variables.size()) {
+            jumpE *= factor.network.variables[factor.variables.get(factorVariableIndex)].getLength();
+            factorVariableIndex++;
+        }
+
+        for (int k = 0; k < jumpE; k++) {
+            for (int j = 0; j < jumpS; j++) {
+                int probabilityIndex = k * jumpS + j;
+                double probability = factor.probabilities.get(probabilityIndex);
+                for (int i = 1; i < variableLength; i++) {
+                    probability += factor.probabilities.get(probabilityIndex + i * jumpS);
+                }
+                probabilities.add(probability);
+            }
+        }
+
+        return new Factor(factor.network, variables, probabilities);
     }
 
 //    public void combine(int variableKey) {

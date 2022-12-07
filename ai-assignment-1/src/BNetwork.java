@@ -25,7 +25,7 @@ public class BNetwork {
     // members
     public Variable[] variables = null;
     public int[][] parents = null;
-    public float[][] CPTs = null;
+    public double[][] CPTs = null;
 
     public BNetwork(String filepath) throws ParserConfigurationException, IOException, SAXException {
         // load XML
@@ -71,7 +71,7 @@ public class BNetwork {
         int variablesLen = this.variables.length;
 
         this.parents = new int[variablesLen][];
-        this.CPTs = new float[variablesLen][];
+        this.CPTs = new double[variablesLen][];
 
         NodeList definitionsElements = network.getElementsByTagName("DEFINITION");
 
@@ -104,9 +104,9 @@ public class BNetwork {
 
         this.parents[variableKey] = parentsList.stream().mapToInt(i->i).toArray();
 
-        this.CPTs[variableKey] = new float[tableValues.length];
+        this.CPTs[variableKey] = new double[tableValues.length];
         for (int i = 0; i < tableValues.length; i++) {
-            this.CPTs[variableKey][i] = Float.parseFloat(tableValues[i]);
+            this.CPTs[variableKey][i] = Double.parseDouble(tableValues[i]);
         }
     }
 
@@ -148,14 +148,14 @@ public class BNetwork {
         return hidden;
     }
 
-    private void callQueryResult(Query query, float[] probabilities, int additions, int multiplies) {
-        float a = probabilities[0];
+    private void callQueryResult(Query query, double[] probabilities, int additions, int multiplies) {
+        double a = probabilities[0];
         for (int i = 1; i < probabilities.length; i++) {
             a += probabilities[i];
             additions++;
         }
 
-        float probability = probabilities[query.queryVarible] / a;
+        double probability = probabilities[query.queryValue] / a;
 
         // printing the results
         System.out.println(String.format("%.05f,%d,%d", probability, additions, multiplies));
@@ -182,7 +182,7 @@ public class BNetwork {
         int additions = 0;
         int multiplies = 0;
 
-        float[] probabilities = new float[this.variables[query.queryVarible].getLength()];
+        double[] probabilities = new double[this.variables[query.queryVarible].getLength()];
         Arrays.fill(probabilities, 0.0f);
 
         int[] hidden = getHidden(query);
@@ -202,7 +202,7 @@ public class BNetwork {
             do {
                 if (k == hidden.length) {
                     // get probability of one value of hidden variables
-                    float subProbability = 1;
+                    double subProbability = 1;
                     for (int i = 0; i < this.variables.length; i++) {
                         int cptIndex = values[i];
                         int jump = this.variables[i].getLength();
@@ -313,7 +313,7 @@ public class BNetwork {
             // only factors with variables (factors with more then one probability).
             if (factorVariables.size() > 0) {
                 // load the factor probabilities
-                List<Float> factorProbabilities = new LinkedList<>();
+                List<Double> factorProbabilities = new LinkedList<>();
 
                 int k = 0;
                 do {
@@ -359,7 +359,7 @@ public class BNetwork {
         int additions = 0;
         int multiplies = 0;
 
-        float[] probabilities = new float[this.variables[query.queryVarible].getLength()];
+        double[] probabilities = new double[this.variables[query.queryVarible].getLength()];
         Arrays.fill(probabilities, 0.0f);
 
         List<Integer> hiddenVariables = Arrays.stream(getHidden(query)).boxed().collect(Collectors.toList());
@@ -388,6 +388,7 @@ public class BNetwork {
                 if (factor.variableExists(hidden)) {
                     factorsToJoin.add(factor);
                     factors.remove(i);
+                    i--;
                 }
             }
 
@@ -400,17 +401,25 @@ public class BNetwork {
                     factorsToJoin.remove(0);
                 }
 
-
                 // eliminate factor
-                // TODO
+                joinedFactor = Factor.eliminate(joinedFactor, hidden);
 
-                // remove the factor if is single valued
-                // TODO
+                // add the factor if it has more than probability
+                if (joinedFactor.probabilities.size() > 1) {
+                    factors.add(joinedFactor);
+                }
             }
         }
 
-        // last eliminate factor
-        // TODO
+        // join all the last factors
+        Factor lastFactor = factors.get(0);
+        factors.remove(0);
+        while (!factors.isEmpty()) {
+            lastFactor = Factor.join(lastFactor, factors.get(0));
+            factors.remove(0);
+        }
+
+        probabilities = lastFactor.probabilities.stream().mapToDouble(i->i).toArray();
 
         // result
         this.callQueryResult(query, probabilities, additions, multiplies);
