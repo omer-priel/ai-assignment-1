@@ -24,7 +24,7 @@ test-2: build
 	cd test-build && $(JAVA) Ex1 < ../inputs/big_net_input.txt
 
 test-3: build
-	cd test-build && $(JAVA) Ex1 < ../inputs/a_input.txt
+	cd test-build && $(JAVA) Ex1 < ../inputs/alarm_net_2_input.txt
 
 test-4: build
 	cd test-build && $(JAVA) Ex1 < ../inputs/big_net_2_input.txt
