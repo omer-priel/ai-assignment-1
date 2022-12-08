@@ -159,11 +159,6 @@ public class BNetwork {
 
         // printing the results
         System.out.println(String.format("%.07f,%d,%d", probability, additions, multiplies));
-
-        for (int i = 0; i < probabilities.length; i++) {
-            System.out.println(String.format("%d = %.07f", i, probabilities[i]));
-        }
-        System.out.println(String.format("a = %.07f", a));
     }
 
     // call query
@@ -329,11 +324,6 @@ public class BNetwork {
                         int cptIndex = values[0];
                         int jump = 1;
 
-                        for (int i = 0; i < values.length; i++) {
-                            System.out.print(values[i] + ", ");
-                        }
-                        System.out.println();
-
                         for (int j = 1; j < originVariables.size(); j++) {
                             int originVariable = originVariables.get(j - 1);
 
@@ -356,8 +346,6 @@ public class BNetwork {
                         }
                     }
                 } while (k >= 0);
-
-                System.out.println();
 
                 // add the factor
                 Factor factor = new Factor(this, factorVariables, factorProbabilities);
@@ -390,6 +378,20 @@ public class BNetwork {
         List<Factor> factors = callQuery2CreateFactors(query, net, hiddenVariables);
 
         // remove hidden variables
+        Collections.sort(hiddenVariables, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer variableAKey, Integer variableBKey) {
+                Variable variableA = getVariable(variableAKey);
+                Variable variableB = getVariable(variableBKey);
+
+                if (variableA.getLength() != variableB.getLength()) {
+                    return  (variableA.getLength() > variableB.getLength()) ? 1 : -1;
+                }
+
+                return variableA.getName().compareTo(variableB.getName());
+            }
+        });
+
         while (!hiddenVariables.isEmpty()) {
             // choose hidden variable
             int hidden = hiddenVariables.get(0);
@@ -397,9 +399,15 @@ public class BNetwork {
 
             // collect factors with the hidden to single factor
             List<Factor> factorsToJoin = new LinkedList<>();
+            int firstFactorIndex = -1;
             for (int i = 0; i < factors.size(); i++) {
                 Factor factor = factors.get(i);
                 if (factor.variableExists(hidden)) {
+                    // get the factor index, to return the new factor to the same place
+                    if (firstFactorIndex == -1) {
+                        firstFactorIndex = i;
+                    }
+
                     factorsToJoin.add(factor);
                     factors.remove(i);
                     i--;
@@ -407,6 +415,18 @@ public class BNetwork {
             }
 
             if (factorsToJoin.size() > 0) {
+                // ordering the factors to join
+                Collections.sort(factorsToJoin, new Comparator<Factor>() {
+                    @Override
+                    public int compare(Factor factorA, Factor factorB) {
+                        if (factorA.probabilities.size() != factorB.probabilities.size()) {
+                            return  (factorA.probabilities.size() > factorB.probabilities.size()) ? 1 : -1;
+                        }
+
+                        return variables[factorA.variables.get(0)].getName().compareTo(variables[factorB.variables.get(0)].getName());
+                    }
+                });
+
                 // join the Factors
                 Factor joinedFactor = factorsToJoin.get(0);
                 factorsToJoin.remove(0);
@@ -420,7 +440,7 @@ public class BNetwork {
 
                 // add the factor if it has more than probability
                 if (joinedFactor.probabilities.size() > 1) {
-                    factors.add(joinedFactor);
+                    factors.add(firstFactorIndex, joinedFactor);
                 }
             }
         }

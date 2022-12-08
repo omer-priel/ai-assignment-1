@@ -29,14 +29,10 @@ class Ex1 {
     setTestsInputs();
 
     String networkPath = scanner.nextLine();
-    System.out.println(networkPath);
-
     BNetwork network = new BNetwork(networkPath);
 
     while (scanner.hasNext()) {
       String queryInput = scanner.nextLine();
-      System.out.println(queryInput);
-
       Query query = new Query(network, queryInput);
 
       network.callQuery(query);

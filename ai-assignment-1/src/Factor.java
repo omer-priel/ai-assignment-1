@@ -82,9 +82,9 @@ public class Factor {
             indexesB[i] = factorVariables.indexOf(factorB.variables.get(i));
         }
 
-        int k = 0;
+        int k = values.length - 1;
         do {
-            if (k == values.length) {
+            if (k < 0) {
                 // add new probability to the new factor
                 int cptIndexA = 0;
                 int jumpA = 1;
@@ -112,17 +112,17 @@ public class Factor {
 
                 factorProbabilities.add(probabilityA * probabilityB);
 
-                k--;
+                k++;
             } else {
                 if (values[k] == network.variables[factorVariables.get(k)].getLength() - 1) {
                     values[k] = -1;
-                    k--;
+                    k++;
                 } else {
                     values[k]++;
-                    k++;
+                    k--;
                 }
             }
-        } while (k >= 0);
+        } while (k < values.length);
 
         // create the factor
         Factor factor = new Factor(network, factorVariables, factorProbabilities);
@@ -157,57 +157,17 @@ public class Factor {
 
         for (int k = 0; k < jumpE; k++) {
             for (int j = 0; j < jumpS; j++) {
-                int probabilityIndex = k * jumpS + j;
+                int probabilityIndex = k * jumpS * variableLength  + j;
+
                 double probability = factor.probabilities.get(probabilityIndex);
                 for (int i = 1; i < variableLength; i++) {
                     probability += factor.probabilities.get(probabilityIndex + i * jumpS);
                 }
+
                 probabilities.add(probability);
             }
         }
 
         return new Factor(factor.network, variables, probabilities);
     }
-
-//    public void combine(int variableKey) {
-//        int index = -1;
-//        for (int i = 0; i < this.variables.size() && index == -1; i++) {
-//            if (this.variables.get(i) == variableKey) {
-//                index = i;
-//            }
-//        }
-//
-//        // the variable is not in the factor
-//        if (index == -1) {
-//            return;
-//        }
-//
-//        // combine
-//        int variableLength = this.network.getVariable(index).getLength();
-//        int jump = variableLength;
-//        for (int i = 0; i < index; i++) {
-//            jump *= this.network.getVariable(this.variables.get(i)).getLength();
-//        }
-//
-//        List<List<Integer>> newValues = new LinkedList<>();
-//        List<Integer> newProbabilities = new LinkedList<>();
-//
-//        for (int i = 0; i < jump; i++) {
-//            List<Integer> newValue = this.values.get(i);
-//            newValue.remove(index);
-//
-//            int newProbability = this.probabilities.get(i);
-//            for (int j = 1; j < variableLength; j++) {
-//                newProbability += this.probabilities.get(i + jump * j);
-//            }
-//
-//            newValues.add(newValue);
-//            newProbabilities.add(newProbability);
-//        }
-//
-//        // clean up
-//        this.variables.remove(index);
-//        this.values = newValues;
-//        this.probabilities = newProbabilities;
-//    }
 }
