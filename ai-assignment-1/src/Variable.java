@@ -13,9 +13,15 @@ public class Variable {
         return this.name;
     }
 
-    public int getValueKey(String value) {
+    /**
+     * get value key by name
+     *
+     * @param name the name of the value
+     * @return
+     */
+    public int getValueKey(String name) {
         for (int i = 0; i < this.values.length; i++) {
-            if (this.values[i].equals(value)) {
+            if (this.values[i].equals(name)) {
                 return i;
             }
         }
@@ -23,6 +29,11 @@ public class Variable {
         return -1;
     }
 
+    /**
+     * get length of the variable values
+     *
+     * @return length of the variable values
+     */
     public int getLength() {
         return this.values.length;
     }

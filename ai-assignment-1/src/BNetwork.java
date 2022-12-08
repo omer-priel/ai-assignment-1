@@ -23,8 +23,23 @@ public class BNetwork {
     }
 
     // members
+    /**
+     * array of variables.
+     * used for converting to keys and for variables lengths.
+     */
     public Variable[] variables = null;
+
+    /**
+     * array for mapping variable to his parents.
+     * parents[variable key][Pi] when Pi is the parent i of the variable
+     */
     public int[][] parents = null;
+
+    /**
+     * array for mapping variable to his CPT.
+     * CPTs[variable key][Pi] when Pi is the probability of i.
+     * when 'i' is the index of the values
+     */
     public double[][] CPTs = null;
 
     public BNetwork(String filepath) throws ParserConfigurationException, IOException, SAXException {
@@ -44,6 +59,11 @@ public class BNetwork {
         initCPTs(network);
     }
 
+    /**
+     * initialize the variables from the XML
+     *
+     * @param network network xml node
+     */
     private void initVariables(Element network) {
         List<Variable> variables = new LinkedList<Variable>();
 
@@ -73,6 +93,11 @@ public class BNetwork {
         variables.toArray(this.variables);
     }
 
+    /**
+     * initialize the parents and the CPTs from the XML
+     *
+     * @param network network xml node
+     */
     private void initCPTs(Element network) {
         int variablesLen = this.variables.length;
 
@@ -88,11 +113,18 @@ public class BNetwork {
             NodeList parentsNodes = definitionElement.getElementsByTagName("GIVEN");
             String[] tableValues = definitionElement.getElementsByTagName("TABLE").item(0).getTextContent().split("\\s+");
 
-            loadCPT(name, parentsNodes, tableValues);
+            initSingleCPT(name, parentsNodes, tableValues);
         }
     }
 
-    private void loadCPT(String name, NodeList parentsNodes, String[] tableValues) {
+    /**
+     * initialize single CPT with its parents
+     *
+     * @param name CPT variable name
+     * @param parentsNodes parents xml nodes
+     * @param tableValues cpt table
+     */
+    private void initSingleCPT(String name, NodeList parentsNodes, String[] tableValues) {
         int variableKey = this.getVariableKey(name);
         List<Integer> parentsList = new LinkedList<>();
 
@@ -117,9 +149,16 @@ public class BNetwork {
     }
 
     // getters
-    public int getVariableKey(String variableName) {
+
+    /**
+     * get key of variable by name
+     *
+     * @param name variable name
+     * @return key of the variable and -1 if this variable not exists in the network
+     */
+    public int getVariableKey(String name) {
         for (int i = 0; i < variables.length; i++) {
-            if (variables[i].getName().equals(variableName)) {
+            if (variables[i].getName().equals(name)) {
                 return i;
             }
         }
@@ -127,11 +166,24 @@ public class BNetwork {
         return -1;
     }
 
+    /**
+     * get variable by key
+     *
+     * @param key
+     * @return
+     */
     public Variable getVariable(int key) {
         return this.variables[key];
     }
 
     // call queries utils
+
+    /**
+     * get the hidden variables of query
+     *
+     * @param query
+     * @return array of variables keys
+     */
     private int[] getHidden(Query query) {
         int[] hidden = new int[this.variables.length - 1 - query.evidencesVariables.length];
 
@@ -154,6 +206,12 @@ public class BNetwork {
         return hidden;
     }
 
+    /**
+     * calculate query probability by list of normalized probabilities
+     *
+     * @param query
+     * @param probabilities normalized probabilities array
+     */
     private void calcProbability(Query query, double[] probabilities) {
         double a = probabilities[0];
         for (int i = 1; i < probabilities.length; i++) {
@@ -164,12 +222,23 @@ public class BNetwork {
         query.results.probability = probabilities[query.queryValue] / a;
     }
 
+    /**
+     * print result of query
+     *
+     * @param query
+     */
     private void printResult(Query query) {
         // printing the results
         System.out.println(String.format("%.07f,%d,%d", query.results.probability, query.results.additions, query.results.multiplies));
     }
 
     // call query
+
+    /**
+     * call (run) a single query
+     *
+     * @param query
+     */
     public void callQuery(Query query) {
         if (query.evidencesVariables.length == 0) {
             callQueryWithoutEvidences(query);
@@ -190,7 +259,7 @@ public class BNetwork {
     }
 
     // callQueryWithoutEvidences
-    public void callQueryWithoutEvidences(Query query) {
+    private void callQueryWithoutEvidences(Query query) {
         double[] cpt = this.CPTs[query.queryVariable];
 
         int i = query.queryValue;
@@ -217,7 +286,7 @@ public class BNetwork {
     }
 
     // callQuery1
-    public void callQuery1(Query query) {
+    private void callQuery1(Query query) {
         // init
         double[] probabilities = new double[this.variables[query.queryVariable].getLength()];
         Arrays.fill(probabilities, 0.0f);
@@ -234,7 +303,7 @@ public class BNetwork {
                 values[query.evidencesVariables[i]] = query.evidencesValues[i];
             }
 
-            // get probability
+            // get single probability
             int k = 0;
             do {
                 if (k == hidden.length) {
@@ -277,7 +346,7 @@ public class BNetwork {
     }
 
     // callQuery2
-    private void callQuery2RemoveLeavesFactors(List<Integer> net, List<Integer> hiddenVariables) {
+    private void callQuery2_RemoveLeavesFactors(List<Integer> net, List<Integer> hiddenVariables) {
         int hiddenIndex = 0;
         while (hiddenIndex < hiddenVariables.size()) {
             Integer hidden = hiddenVariables.get(hiddenIndex);
@@ -306,7 +375,7 @@ public class BNetwork {
         }
     }
 
-    private List<Factor> callQuery2CreateFactors(Query query, List<Integer> netAsList, List<Integer> hiddenVariables) {
+    private List<Factor> callQuery2_CreateFactors(Query query, List<Integer> netAsList) {
         // net to
         Integer[] net = new Integer[netAsList.size()];
         netAsList.toArray(net);
@@ -349,7 +418,7 @@ public class BNetwork {
                 }
             }
 
-            // only factors with variables (factors with more then one probability).
+            // only factors with variables (factors with more than one probability).
             if (factorVariables.size() > 0) {
                 // load the factor probabilities
                 List<Double> factorProbabilities = new LinkedList<>();
@@ -395,30 +464,29 @@ public class BNetwork {
         return factors;
     }
 
-    public void callQuery2(Query query){
+    private void callQuery2(Query query){
         // init
-
         List<Integer> hiddenVariables = Arrays.stream(getHidden(query)).boxed().collect(Collectors.toList());
 
-        // calc
-        List<Integer> net = new LinkedList<>(hiddenVariables);
+        List<Integer> net = new LinkedList<>(hiddenVariables); // the variables that need for the query
         net.add(query.queryVariable);
         net.addAll(Arrays.stream(query.evidencesVariables).boxed().collect(Collectors.toList()));
 
         // remove unuseful hidden variables
-        callQuery2RemoveLeavesFactors(net, hiddenVariables);
+        callQuery2_RemoveLeavesFactors(net, hiddenVariables);
 
         // create factors
-        List<Factor> factors = callQuery2CreateFactors(query, net, hiddenVariables);
+        List<Factor> factors = callQuery2_CreateFactors(query, net);
 
         // ordering the hidden variables
-        Collections.sort(hiddenVariables, (variableAKey, variableBKey) -> {
+        hiddenVariables.sort((variableAKey, variableBKey) -> {
             Variable variableA = getVariable(variableAKey);
             Variable variableB = getVariable(variableBKey);
 
             return variableA.getName().compareTo(variableB.getName());
         });
 
+        // Variable Elimination
         while (!hiddenVariables.isEmpty()) {
             // choose hidden variable
             int hidden = hiddenVariables.get(0);
@@ -443,9 +511,9 @@ public class BNetwork {
 
             if (factorsToJoin.size() > 0) {
                 // ordering the factors to join
-                Collections.sort(factorsToJoin, (factorA, factorB) -> {
+                factorsToJoin.sort((factorA, factorB) -> {
                     if (factorA.probabilities.size() != factorB.probabilities.size()) {
-                        return  (factorA.probabilities.size() > factorB.probabilities.size()) ? 1 : -1;
+                        return (factorA.probabilities.size() > factorB.probabilities.size()) ? 1 : -1;
                     }
 
                     return variables[factorA.variables.get(0)].getName().compareTo(variables[factorB.variables.get(0)].getName());
@@ -485,7 +553,7 @@ public class BNetwork {
         this.printResult(query);
     }
 
-    public void callQuery3(Query query) {
+    private void callQuery3(Query query) {
         // TODO
     }
 }

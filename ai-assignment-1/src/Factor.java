@@ -19,9 +19,7 @@ public class Factor {
         return this.variables.contains(variable);
     }
 
-    // setters
-
-    // utils
+    // static operations
     static public List<Integer> unionGroups(List<Integer> groupA, List<Integer> groupB) {
         List<Integer> union = new LinkedList<>(groupA);
 
@@ -39,7 +37,6 @@ public class Factor {
         return union;
     }
 
-    // actions
     static public Factor join(Query query, Factor factorA, Factor factorB) {
         BNetwork network = factorA.network;
 

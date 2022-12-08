@@ -39,7 +39,7 @@ class Ex1 {
   static private Scanner scanner = new Scanner(System.in);
 
   public static void main(String[] args) {
-    setTestsInputs();
+    //setTestsInputs();
 
     // load the network
     BNetwork network = null;
