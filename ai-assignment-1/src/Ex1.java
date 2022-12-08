@@ -26,7 +26,7 @@ class Ex1 {
   }
 
   public static void main(String[] args) throws ParserConfigurationException, IOException, SAXException {
-    setTestsInputs();
+    //setTestsInputs();
 
     String networkPath = scanner.nextLine();
     BNetwork network = new BNetwork(networkPath);

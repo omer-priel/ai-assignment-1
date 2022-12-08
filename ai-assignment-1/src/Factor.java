@@ -16,7 +16,7 @@ public class Factor {
 
     // getters
     public boolean variableExists(Integer variable) {
-        return this.variables.indexOf(variable) != -1;
+        return this.variables.contains(variable);
     }
 
     // setters
@@ -39,28 +39,8 @@ public class Factor {
         return union;
     }
 
-    static public List<Integer> cutGroups(List<Integer> groupA, List<Integer> groupB) {
-        List<Integer> both = new LinkedList<>(groupA);
-
-        int i = 0;
-        while (i < both.size()) {
-            boolean inB = false;
-            for (int j = 0; j < groupB.size() && !inB; j++) {
-                inB = both.get(i).equals((groupB.get(j)));
-            }
-
-            if (inB) {
-                i++;
-            } else {
-                both.remove(i);
-            }
-        }
-
-        return both;
-    }
-
     // actions
-    static public Factor join(Factor factorA, Factor factorB) {
+    static public Factor join(Query query, Factor factorA, Factor factorB) {
         BNetwork network = factorA.network;
 
         // get the factor variables
@@ -111,6 +91,7 @@ public class Factor {
                 double probabilityB = factorB.probabilities.get(cptIndexB);
 
                 factorProbabilities.add(probabilityA * probabilityB);
+                query.results.multiplies++;
 
                 k++;
             } else {
@@ -125,12 +106,10 @@ public class Factor {
         } while (k < values.length);
 
         // create the factor
-        Factor factor = new Factor(network, factorVariables, factorProbabilities);
-
-        return factor;
+        return new Factor(network, factorVariables, factorProbabilities);
     }
 
-    static public Factor eliminate(Factor factor, Integer variable) {
+    static public Factor eliminate(Query query, Factor factor, Integer variable) {
         List<Integer> variables = new ArrayList<>(factor.variables);
         variables.remove(variable);
 
@@ -162,6 +141,7 @@ public class Factor {
                 double probability = factor.probabilities.get(probabilityIndex);
                 for (int i = 1; i < variableLength; i++) {
                     probability += factor.probabilities.get(probabilityIndex + i * jumpS);
+                    query.results.additions++;
                 }
 
                 probabilities.add(probability);

@@ -1,3 +1,0 @@
-../inputs/alarm_net.xml
-P(B=T|J=T,M=T),1
-P(B=T|J=T,M=T),2

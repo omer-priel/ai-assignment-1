@@ -7,6 +7,8 @@ public class Query {
 
     public int type;
 
+    public QueryResults results;
+
     public Query(BNetwork network, String input) {
         String[] parts = input.split("\\(")[1].split("\\),");
 
@@ -28,5 +30,7 @@ public class Query {
         }
 
         this.type = Integer.parseInt(parts[1]);
+
+        this.results = new QueryResults();
     }
 }

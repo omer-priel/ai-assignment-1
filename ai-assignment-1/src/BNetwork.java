@@ -148,17 +148,17 @@ public class BNetwork {
         return hidden;
     }
 
-    private void callQueryResult(Query query, double[] probabilities, int additions, int multiplies) {
+    private void calcAndPrintResult(Query query, double[] probabilities) {
         double a = probabilities[0];
         for (int i = 1; i < probabilities.length; i++) {
             a += probabilities[i];
-            additions++;
+            query.results.additions++;
         }
 
-        double probability = probabilities[query.queryValue] / a;
+        query.results.probability = probabilities[query.queryValue] / a;
 
         // printing the results
-        System.out.println(String.format("%.07f,%d,%d", probability, additions, multiplies));
+        System.out.println(String.format("%.07f,%d,%d", query.results.probability, query.results.additions, query.results.multiplies));
     }
 
     // call query
@@ -179,9 +179,6 @@ public class BNetwork {
     // callQuery1
     public void callQuery1(Query query) {
         // init
-        int additions = 0;
-        int multiplies = 0;
-
         double[] probabilities = new double[this.variables[query.queryVarible].getLength()];
         Arrays.fill(probabilities, 0.0f);
 
@@ -213,11 +210,11 @@ public class BNetwork {
                             jump *= this.variables[parentKey].getLength();
                         }
 
-                        multiplies += ( i == 0) ? 0 : 1; // the first one is 1
+                        query.results.multiplies += ( i == 0) ? 0 : 1; // the first one is 1
                         subProbability *= this.CPTs[i][cptIndex];
                     }
 
-                    additions += (probabilities[probabilityIndex] == 0) ? 0 : 1; // the first one is 0
+                    query.results.additions += (probabilities[probabilityIndex] == 0) ? 0 : 1; // the first one is 0
                     probabilities[probabilityIndex] += subProbability;
 
                     k--;
@@ -234,7 +231,7 @@ public class BNetwork {
         }
 
         // result
-        this.callQueryResult(query, probabilities, additions, multiplies);
+        this.calcAndPrintResult(query, probabilities);
     }
 
     // callQuery2
@@ -358,11 +355,6 @@ public class BNetwork {
 
     public void callQuery2(Query query){
         // init
-        int additions = 0;
-        int multiplies = 0;
-
-        double[] probabilities = new double[this.variables[query.queryVarible].getLength()];
-        Arrays.fill(probabilities, 0.0f);
 
         List<Integer> hiddenVariables = Arrays.stream(getHidden(query)).boxed().collect(Collectors.toList());
 
@@ -377,19 +369,12 @@ public class BNetwork {
         // create factors
         List<Factor> factors = callQuery2CreateFactors(query, net, hiddenVariables);
 
-        // remove hidden variables
-        Collections.sort(hiddenVariables, new Comparator<Integer>() {
-            @Override
-            public int compare(Integer variableAKey, Integer variableBKey) {
-                Variable variableA = getVariable(variableAKey);
-                Variable variableB = getVariable(variableBKey);
+        // ordering the hidden variables
+        Collections.sort(hiddenVariables, (variableAKey, variableBKey) -> {
+            Variable variableA = getVariable(variableAKey);
+            Variable variableB = getVariable(variableBKey);
 
-                if (variableA.getLength() != variableB.getLength()) {
-                    return  (variableA.getLength() > variableB.getLength()) ? 1 : -1;
-                }
-
-                return variableA.getName().compareTo(variableB.getName());
-            }
+            return variableA.getName().compareTo(variableB.getName());
         });
 
         while (!hiddenVariables.isEmpty()) {
@@ -416,27 +401,24 @@ public class BNetwork {
 
             if (factorsToJoin.size() > 0) {
                 // ordering the factors to join
-                Collections.sort(factorsToJoin, new Comparator<Factor>() {
-                    @Override
-                    public int compare(Factor factorA, Factor factorB) {
-                        if (factorA.probabilities.size() != factorB.probabilities.size()) {
-                            return  (factorA.probabilities.size() > factorB.probabilities.size()) ? 1 : -1;
-                        }
-
-                        return variables[factorA.variables.get(0)].getName().compareTo(variables[factorB.variables.get(0)].getName());
+                Collections.sort(factorsToJoin, (factorA, factorB) -> {
+                    if (factorA.probabilities.size() != factorB.probabilities.size()) {
+                        return  (factorA.probabilities.size() > factorB.probabilities.size()) ? 1 : -1;
                     }
+
+                    return variables[factorA.variables.get(0)].getName().compareTo(variables[factorB.variables.get(0)].getName());
                 });
 
                 // join the Factors
                 Factor joinedFactor = factorsToJoin.get(0);
                 factorsToJoin.remove(0);
                 while (!factorsToJoin.isEmpty()) {
-                    joinedFactor = Factor.join(joinedFactor, factorsToJoin.get(0));
+                    joinedFactor = Factor.join(query, joinedFactor, factorsToJoin.get(0));
                     factorsToJoin.remove(0);
                 }
 
                 // eliminate factor
-                joinedFactor = Factor.eliminate(joinedFactor, hidden);
+                joinedFactor = Factor.eliminate(query, joinedFactor, hidden);
 
                 // add the factor if it has more than probability
                 if (joinedFactor.probabilities.size() > 1) {
@@ -449,14 +431,14 @@ public class BNetwork {
         Factor lastFactor = factors.get(0);
         factors.remove(0);
         while (!factors.isEmpty()) {
-            lastFactor = Factor.join(lastFactor, factors.get(0));
+            lastFactor = Factor.join(query, lastFactor, factors.get(0));
             factors.remove(0);
         }
 
-        probabilities = lastFactor.probabilities.stream().mapToDouble(i->i).toArray();
+        double[] probabilities = lastFactor.probabilities.stream().mapToDouble(i->i).toArray();
 
         // result
-        this.callQueryResult(query, probabilities, additions, multiplies);
+        this.calcAndPrintResult(query, probabilities);
     }
 
     public void callQuery3(Query query) {
