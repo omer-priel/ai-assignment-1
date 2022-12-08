@@ -1,0 +1,9 @@
+big_net.xml
+P(B0=v3|C3=T,B2=F,C2=v3),1
+P(B0=v3|C3=T,B2=F,C2=v3),2
+P(A2=T|C2=v1),1
+P(A2=T|C2=v1),2
+P(D1=T|C2=v1,C3=F),1
+P(D1=T|C2=v1,C3=F),2
+P(D1=T|C2=v1,C3=F),1
+P(D1=T|C2=v1,C3=F),2

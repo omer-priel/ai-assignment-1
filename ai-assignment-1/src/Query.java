@@ -1,8 +1,8 @@
 public class Query {
     // Members
-    public int queryVarible;
+    public int queryVariable;
     public int queryValue;
-    public int[] evidencesVaribles;
+    public int[] evidencesVariables;
     public int[] evidencesValues;
 
     public int type;
@@ -14,19 +14,26 @@ public class Query {
 
         String[] parametersPart = parts[0].split("\\|");
         String[] queryParts = parametersPart[0].split("\\=");
-        String[] evidencesParts = parametersPart[1].split("\\,");
 
-        this.queryVarible = network.getVariableKey(queryParts[0]);
-        this.queryValue = network.getVariable(this.queryValue).getValueKey(queryParts[1]);
+        this.queryVariable = network.getVariableKey(queryParts[0]);
+        this.queryValue = network.getVariable(this.queryVariable).getValueKey(queryParts[1]);
 
-        this.evidencesVaribles = new int[evidencesParts.length];
-        this.evidencesValues = new int[evidencesParts.length];
+        if (parametersPart.length == 1) {
+            this.evidencesVariables = new int[0];
+            this.evidencesValues = new int[0];
+        } else {
 
-        for (int i = 0; i < evidencesParts.length; i++) {
-            String[] evidenceParts = evidencesParts[i].split("\\=");
+            String[] evidencesParts = parametersPart[1].split("\\,");
 
-            this.evidencesVaribles[i] = network.getVariableKey(evidenceParts[0]);
-            this.evidencesValues[i] = network.getVariable(this.evidencesVaribles[i]).getValueKey(evidenceParts[1]);
+            this.evidencesVariables = new int[evidencesParts.length];
+            this.evidencesValues = new int[evidencesParts.length];
+
+            for (int i = 0; i < evidencesParts.length; i++) {
+                String[] evidenceParts = evidencesParts[i].split("\\=");
+
+                this.evidencesVariables[i] = network.getVariableKey(evidenceParts[0]);
+                this.evidencesValues[i] = network.getVariable(this.evidencesVariables[i]).getValueKey(evidenceParts[1]);
+            }
         }
 
         this.type = Integer.parseInt(parts[1]);

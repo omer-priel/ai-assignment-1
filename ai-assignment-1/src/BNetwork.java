@@ -28,8 +28,14 @@ public class BNetwork {
     public double[][] CPTs = null;
 
     public BNetwork(String filepath) throws ParserConfigurationException, IOException, SAXException {
-        // load XML
-        Document document = BNetwork.parseXML(filepath);
+
+        // load the network from XML
+        Document document;
+        try {
+            document = BNetwork.parseXML(filepath);
+        } catch (Exception ex) {
+            throw ex;
+        }
 
         Element network = (Element)document.getElementsByTagName("NETWORK").item(0);
 
@@ -127,13 +133,13 @@ public class BNetwork {
 
     // call queries utils
     private int[] getHidden(Query query) {
-        int[] hidden = new int[this.variables.length - 1 - query.evidencesVaribles.length];
+        int[] hidden = new int[this.variables.length - 1 - query.evidencesVariables.length];
 
         boolean[] isHidden = new boolean[this.variables.length];
         Arrays.fill(isHidden, true);
 
-        isHidden[query.queryVarible] = false;
-        for (int key: query.evidencesVaribles) {
+        isHidden[query.queryVariable] = false;
+        for (int key: query.evidencesVariables) {
             isHidden[key] = false;
         }
 
@@ -148,7 +154,7 @@ public class BNetwork {
         return hidden;
     }
 
-    private void calcAndPrintResult(Query query, double[] probabilities) {
+    private void calcProbability(Query query, double[] probabilities) {
         double a = probabilities[0];
         for (int i = 1; i < probabilities.length; i++) {
             a += probabilities[i];
@@ -156,13 +162,20 @@ public class BNetwork {
         }
 
         query.results.probability = probabilities[query.queryValue] / a;
+    }
 
+    private void printResult(Query query) {
         // printing the results
         System.out.println(String.format("%.07f,%d,%d", query.results.probability, query.results.additions, query.results.multiplies));
     }
 
     // call query
     public void callQuery(Query query) {
+        if (query.evidencesVariables.length == 0) {
+            callQueryWithoutEvidences(query);
+            return;
+        }
+
         switch (query.type) {
             case 1:
                 callQuery1(query);
@@ -176,10 +189,37 @@ public class BNetwork {
         }
     }
 
+    // callQueryWithoutEvidences
+    public void callQueryWithoutEvidences(Query query) {
+        double[] cpt = this.CPTs[query.queryVariable];
+
+        int i = query.queryValue;
+        double probability = cpt[i];
+
+        if (this.parents[query.queryVariable].length > 0) {
+            int jump = cpt.length / this.variables[query.queryVariable].getLength();
+
+            i += jump;
+
+            while (i < cpt.length) {
+                probability += cpt[i];
+
+                query.results.additions++;
+
+                i += jump;
+            }
+        }
+
+        // result
+        query.results.probability = probability;
+
+        this.printResult(query);
+    }
+
     // callQuery1
     public void callQuery1(Query query) {
         // init
-        double[] probabilities = new double[this.variables[query.queryVarible].getLength()];
+        double[] probabilities = new double[this.variables[query.queryVariable].getLength()];
         Arrays.fill(probabilities, 0.0f);
 
         int[] hidden = getHidden(query);
@@ -189,9 +229,9 @@ public class BNetwork {
             int[] values = new int[this.variables.length];
             Arrays.fill(values, -1);
 
-            values[query.queryVarible] = probabilityIndex;
-            for (int i = 0; i < query.evidencesVaribles.length; i++) {
-                values[query.evidencesVaribles[i]] = query.evidencesValues[i];
+            values[query.queryVariable] = probabilityIndex;
+            for (int i = 0; i < query.evidencesVariables.length; i++) {
+                values[query.evidencesVariables[i]] = query.evidencesValues[i];
             }
 
             // get probability
@@ -231,7 +271,9 @@ public class BNetwork {
         }
 
         // result
-        this.calcAndPrintResult(query, probabilities);
+        this.calcProbability(query, probabilities);
+
+        this.printResult(query);
     }
 
     // callQuery2
@@ -292,8 +334,8 @@ public class BNetwork {
                 Integer variable = originVariables.get(i);
                 boolean isEvidence = false;
 
-                for (int j = 0; j < query.evidencesVaribles.length && !isEvidence; j++) {
-                    int evidencesVariable = query.evidencesVaribles[j];
+                for (int j = 0; j < query.evidencesVariables.length && !isEvidence; j++) {
+                    int evidencesVariable = query.evidencesVariables[j];
 
                     if (variable.equals(evidencesVariable)) {
                         isEvidence = true;
@@ -360,8 +402,8 @@ public class BNetwork {
 
         // calc
         List<Integer> net = new LinkedList<>(hiddenVariables);
-        net.add(query.queryVarible);
-        net.addAll(Arrays.stream(query.evidencesVaribles).boxed().collect(Collectors.toList()));
+        net.add(query.queryVariable);
+        net.addAll(Arrays.stream(query.evidencesVariables).boxed().collect(Collectors.toList()));
 
         // remove unuseful hidden variables
         callQuery2RemoveLeavesFactors(net, hiddenVariables);
@@ -438,7 +480,9 @@ public class BNetwork {
         double[] probabilities = lastFactor.probabilities.stream().mapToDouble(i->i).toArray();
 
         // result
-        this.calcAndPrintResult(query, probabilities);
+        this.calcProbability(query, probabilities);
+
+        this.printResult(query);
     }
 
     public void callQuery3(Query query) {
