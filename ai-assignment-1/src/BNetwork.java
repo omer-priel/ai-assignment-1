@@ -390,7 +390,7 @@ public class BNetwork {
             originVariables.addAll(Arrays.stream(parents).boxed().collect(Collectors.toList()));
 
             int[] values = new int[originVariables.size()];
-            Arrays.fill(values, -1);
+            Arrays.fill(values, 0);
             List<Integer> changeableVariablesIndexes = new LinkedList<>();
 
             for (int i = 0; i < originVariables.size(); i++) {
@@ -419,35 +419,39 @@ public class BNetwork {
 
                 Collections.reverse(changeableVariablesIndexes);
 
-                int k = 0;
-                do {
-                    if (k == changeableVariablesIndexes.size()) {
-                        // add new factor probability
-                        int cptIndex = values[0];
-                        int jump = 1;
+                int k = changeableVariablesIndexes.size();
+                while (k != -1) {
+                    // add new factor probability
+                    int cptIndex = values[0];
+                    int jump = 1;
 
-                        for (int j = 1; j < originVariables.size(); j++) {
-                            int originVariable = originVariables.get(j - 1);
+                    for (int j = 1; j < originVariables.size(); j++) {
+                        int originVariable = originVariables.get(j - 1);
 
-                            jump *= this.variables[originVariable].getLength();
+                        jump *= this.variables[originVariable].getLength();
 
-                            cptIndex += values[j] * jump;
-                        }
+                        cptIndex += values[j] * jump;
+                    }
 
-                        factorProbabilities.add(this.CPTs[factorVariable][cptIndex]);
+                    factorProbabilities.add(this.CPTs[factorVariable][cptIndex]);
 
-                        k--;
-                    } else {
+                    // move to next values
+                    k--;
+                    boolean hasNext = true;
+                    while (k >= 0 && hasNext) {
                         int variableKey = originVariables.get(changeableVariablesIndexes.get(k));
-                        if (values[changeableVariablesIndexes.get(k)] == this.variables[variableKey].getLength() - 1) {
-                            values[changeableVariablesIndexes.get(k)] = -1;
+                        hasNext = values[changeableVariablesIndexes.get(k)] == this.variables[variableKey].getLength() - 1;
+                        if (hasNext) {
+                            values[changeableVariablesIndexes.get(k)] = 0;
                             k--;
-                        } else {
-                            values[changeableVariablesIndexes.get(k)]++;
-                            k++;
                         }
                     }
-                } while (k >= 0);
+
+                    if (k != -1) {
+                        values[changeableVariablesIndexes.get(k)]++;
+                        k = changeableVariablesIndexes.size();
+                    }
+                }
 
                 // add the factor
                 Factor factor = new Factor(factorVariables, factorProbabilities);
