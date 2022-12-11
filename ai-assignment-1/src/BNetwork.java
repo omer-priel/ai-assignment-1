@@ -17,9 +17,8 @@ public class BNetwork {
         File file = new File(filepath);
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
-        Document document = builder.parse(file);
 
-        return document;
+        return builder.parse(file);
     }
 
     // members
@@ -149,7 +148,6 @@ public class BNetwork {
     }
 
     // getters
-
     /**
      * get key of variable by name
      *
@@ -296,7 +294,7 @@ public class BNetwork {
         // calc
         for (int probabilityIndex = 0; probabilityIndex < probabilities.length; probabilityIndex++) {
             int[] values = new int[this.variables.length];
-            Arrays.fill(values, -1);
+            Arrays.fill(values, 0);
 
             values[query.queryVariable] = probabilityIndex;
             for (int i = 0; i < query.evidencesVariables.length; i++) {
@@ -304,39 +302,39 @@ public class BNetwork {
             }
 
             // get single probability
-            int k = 0;
-            do {
-                if (k == hidden.length) {
-                    // get probability of one value of hidden variables
-                    double subProbability = 1;
-                    for (int i = 0; i < this.variables.length; i++) {
-                        int cptIndex = values[i];
-                        int jump = this.variables[i].getLength();
+            int k = hidden.length;
+            while (k != -1) {
+                // get probability of one value of hidden variables
+                double subProbability = 1;
+                for (int i = 0; i < this.variables.length; i++) {
+                    int cptIndex = values[i];
+                    int jump = this.variables[i].getLength();
 
-                        for (int j = 0; j < this.parents[i].length; j++) {
-                            int parentKey = this.parents[i][j];
-                            cptIndex += values[parentKey] * jump;
-                            jump *= this.variables[parentKey].getLength();
-                        }
-
-                        query.results.multiplies += ( i == 0) ? 0 : 1; // the first one is 1
-                        subProbability *= this.CPTs[i][cptIndex];
+                    for (int j = 0; j < this.parents[i].length; j++) {
+                        int parentKey = this.parents[i][j];
+                        cptIndex += values[parentKey] * jump;
+                        jump *= this.variables[parentKey].getLength();
                     }
 
-                    query.results.additions += (probabilities[probabilityIndex] == 0) ? 0 : 1; // the first one is 0
-                    probabilities[probabilityIndex] += subProbability;
-
-                    k--;
-                } else {
-                    if (values[hidden[k]] == this.variables[hidden[k]].getLength() - 1) {
-                        values[hidden[k]] = -1;
-                        k--;
-                    } else {
-                        values[hidden[k]]++;
-                        k++;
-                    }
+                    query.results.multiplies += (i == 0) ? 0 : 1; // the first one is 1
+                    subProbability *= this.CPTs[i][cptIndex];
                 }
-            } while (k >= 0);
+
+                query.results.additions += (probabilities[probabilityIndex] == 0) ? 0 : 1; // the first one is 0
+                probabilities[probabilityIndex] += subProbability;
+
+                // move to the next values
+                k--;
+                while (k >= 0 && values[hidden[k]] == this.variables[hidden[k]].getLength() - 1) {
+                    values[hidden[k]] = 0;
+                    k--;
+                }
+
+                if (k != -1) {
+                    values[hidden[k]]++;
+                    k = hidden.length;
+                }
+            }
         }
 
         // result
@@ -346,7 +344,7 @@ public class BNetwork {
     }
 
     // callQuery2
-    private void callQuery2_RemoveLeavesFactors(List<Integer> net, List<Integer> hiddenVariables) {
+    private void variableElimination_RemoveLeavesFactors(List<Integer> net, List<Integer> hiddenVariables) {
         int hiddenIndex = 0;
         while (hiddenIndex < hiddenVariables.size()) {
             Integer hidden = hiddenVariables.get(hiddenIndex);
@@ -375,7 +373,7 @@ public class BNetwork {
         }
     }
 
-    private List<Factor> callQuery2_CreateFactors(Query query, List<Integer> netAsList) {
+    private List<Factor> variableElimination_CreateFactors(Query query, List<Integer> netAsList) {
         // net to
         Integer[] net = new Integer[netAsList.size()];
         netAsList.toArray(net);
@@ -464,7 +462,7 @@ public class BNetwork {
         return factors;
     }
 
-    private void callQuery2(Query query){
+    private void callBasedVariableElimination(Query query, Comparator<Integer> hiddenSortingComparator) {
         // init
         List<Integer> hiddenVariables = Arrays.stream(getHidden(query)).boxed().collect(Collectors.toList());
 
@@ -473,22 +471,16 @@ public class BNetwork {
         net.addAll(Arrays.stream(query.evidencesVariables).boxed().collect(Collectors.toList()));
 
         // remove unuseful hidden variables
-        callQuery2_RemoveLeavesFactors(net, hiddenVariables);
+        variableElimination_RemoveLeavesFactors(net, hiddenVariables);
 
         // create factors
-        List<Factor> factors = callQuery2_CreateFactors(query, net);
+        List<Factor> factors = variableElimination_CreateFactors(query, net);
 
         // ordering the hidden variables
-        hiddenVariables.sort((variableAKey, variableBKey) -> {
-            Variable variableA = getVariable(variableAKey);
-            Variable variableB = getVariable(variableBKey);
-
-            return variableA.getName().compareTo(variableB.getName());
-        });
+        hiddenVariables.sort(hiddenSortingComparator);
 
         // Variable Elimination
         while (!hiddenVariables.isEmpty()) {
-            // choose hidden variable
             int hidden = hiddenVariables.get(0);
             hiddenVariables.remove(0);
 
@@ -553,7 +545,38 @@ public class BNetwork {
         this.printResult(query);
     }
 
+    private void callQuery2(Query query){
+        callBasedVariableElimination(query, (variableAKey, variableBKey) -> {
+            Variable variableA = getVariable(variableAKey);
+            Variable variableB = getVariable(variableBKey);
+
+            return variableA.getName().compareTo(variableB.getName());
+        });
+    }
+
+    /**
+     * does query using Variable Elimination
+     *
+     * Ordering the hidden variables rules:
+     * If A has less dependent variables than B, choose A
+     * If B has less dependent variables than A, choose B
+     * If B has more values than A, choose B
+     * Else, choose A
+     *
+     * @param query
+     */
     private void callQuery3(Query query) {
-        // TODO
+        callBasedVariableElimination(query, (variableAKey, variableBKey) -> {
+            Variable variableA = getVariable(variableAKey);
+            Variable variableB = getVariable(variableBKey);
+
+            int diff = this.parents[variableAKey].length - this.parents[variableBKey].length;
+
+            if (diff != 0) {
+                return (diff > 0) ? 1 : -1;
+            }
+
+            return (variableA.getLength() > variableB.getLength()) ? 1 : -1;
+        });
     }
 }
