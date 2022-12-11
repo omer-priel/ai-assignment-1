@@ -4,55 +4,99 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class Factor {
-    public List<Integer> variables;
+    public int[] variables;
     public List<Double> probabilities;
 
-    public Factor(List<Integer> variables, List<Double> probabilities) {
+    public Factor(int[] variables, List<Double> probabilities) {
         this.variables = variables;
         this.probabilities = probabilities;
     }
 
     // getters
     public boolean variableExists(Integer variable) {
-        return this.variables.contains(variable);
+        for (int i = 0; i < this.variables.length; i++) {
+            if (this.variables[i] == variable) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // static operations
-    static public List<Integer> unionGroups(List<Integer> groupA, List<Integer> groupB) {
-        List<Integer> union = new LinkedList<>(groupA);
+//    static public List<Integer> unionGroups(List<Integer> groupA, List<Integer> groupB) {
+//        List<Integer> union = new LinkedList<>(groupA);
+//
+//        for (int i = 0; i < groupB.size(); i++) {
+//            boolean inA = false;
+//            for (int j = 0; j < groupA.size() && !inA; j++) {
+//                inA = groupB.get(i).equals((groupA.get(j)));
+//            }
+//
+//            if (!inA) {
+//             union.add(groupB.get(i));
+//            }
+//        }
+//
+//        return union;
+//    }
 
-        for (int i = 0; i < groupB.size(); i++) {
+    static public int[] unionGroups(int[] groupA, int[] groupB) {
+        int[] union = new int[groupA.length + groupB.length];
+
+        int index = 0;
+        while (index < groupA.length) {
+            union[index] = groupA[index];
+            index++;
+        }
+
+        for (int i = 0; i < groupB.length; i++) {
             boolean inA = false;
-            for (int j = 0; j < groupA.size() && !inA; j++) {
-                inA = groupB.get(i).equals((groupA.get(j)));
+            for (int j = 0; j < groupA.length && !inA; j++) {
+                inA = groupB[i] == groupA[j];
             }
 
             if (!inA) {
-             union.add(groupB.get(i));
+                union[index] = groupB[i];
+                index++;
             }
         }
 
-        return union;
+        int[] fixedUnion = new int[index];
+        for (int i = 0; i < fixedUnion.length; i++) {
+            fixedUnion[i] = union[i];
+        }
+
+        return fixedUnion;
     }
 
     static public Factor join(BNetwork network, Query query, Factor factorA, Factor factorB) {
         // get the factor variables
-        List<Integer> factorVariables = unionGroups(factorA.variables, factorB.variables);
+        int[] factorVariables = unionGroups(factorA.variables, factorB.variables);
 
         // get the probabilities
         List<Double> factorProbabilities = new LinkedList<>();
 
-        int[] values = new int[factorVariables.size()];
+        int[] values = new int[factorVariables.length];
         Arrays.fill(values, 0);
 
-        int[] indexesA = new int[factorA.variables.size()];
+        int[] indexesA = new int[factorA.variables.length];
         for (int i = 0; i < indexesA.length; i++) {
-            indexesA[i] = factorVariables.indexOf(factorA.variables.get(i));
+            int j = 0;
+            while (factorVariables[j] != factorA.variables[i]) {
+                j++;
+            }
+
+            indexesA[i] = j;
         }
 
-        int[] indexesB = new int[factorB.variables.size()];
+        int[] indexesB = new int[factorB.variables.length];
         for (int i = 0; i < indexesB.length; i++) {
-            indexesB[i] = factorVariables.indexOf(factorB.variables.get(i));
+            int j = 0;
+            while (factorVariables[j] != factorB.variables[i]) {
+                j++;
+            }
+
+            indexesB[i] = j;
         }
 
         int k = 0;
@@ -63,16 +107,16 @@ public class Factor {
             int cptIndexB = 0;
             int jumpB = 1;
 
-            for (int i = 0; i < factorA.variables.size(); i++) {
-                int variable = factorA.variables.get(i);
+            for (int i = 0; i < factorA.variables.length; i++) {
+                int variable = factorA.variables[i];
 
                 cptIndexA += values[indexesA[i]] * jumpA;
 
                 jumpA *= network.variables[variable].getLength();
             }
 
-            for (int i = 0; i < factorB.variables.size(); i++) {
-                int variable = factorB.variables.get(i);
+            for (int i = 0; i < factorB.variables.length; i++) {
+                int variable = factorB.variables[i];
 
                 cptIndexB += values[indexesB[i]] * jumpB;
 
@@ -87,7 +131,7 @@ public class Factor {
 
             // move to next value
             k = 0;
-            while (k < values.length && values[k] == network.variables[factorVariables.get(k)].getLength() - 1) {
+            while (k < values.length && values[k] == network.variables[factorVariables[k]].getLength() - 1) {
                 values[k] = 0;
                 k++;
             }
@@ -102,9 +146,16 @@ public class Factor {
         return new Factor(factorVariables, factorProbabilities);
     }
 
-    static public Factor eliminate(BNetwork network, Query query, Factor factor, Integer variable) {
-        List<Integer> variables = new ArrayList<>(factor.variables);
-        variables.remove(variable);
+    static public Factor eliminate(BNetwork network, Query query, Factor factor, int variable) {
+        int[] variables = new int[factor.variables.length - 1];
+
+        int variableNewIndex = 0;
+        for (int i = 0; i < factor.variables.length; i++) {
+            if (factor.variables[i] != variable) {
+                variables[variableNewIndex] = factor.variables[i];
+                variableNewIndex++;
+            }
+        }
 
         // get the probabilities
         List<Double> probabilities = new ArrayList<>();
@@ -114,16 +165,16 @@ public class Factor {
         int jumpE = 1;
 
         int factorVariableIndex = 0;
-        while (!factor.variables.get(factorVariableIndex).equals(variable)) {
-            jumpS *= network.variables[factor.variables.get(factorVariableIndex)].getLength();
+        while (factor.variables[factorVariableIndex] != variable) {
+            jumpS *= network.variables[factor.variables[factorVariableIndex]].getLength();
             factorVariableIndex++;
         }
 
-        variableLength = network.variables[factor.variables.get(factorVariableIndex)].getLength();
+        variableLength = network.variables[factor.variables[factorVariableIndex]].getLength();
         factorVariableIndex++;
 
-        while (factorVariableIndex < factor.variables.size()) {
-            jumpE *= network.variables[factor.variables.get(factorVariableIndex)].getLength();
+        while (factorVariableIndex < factor.variables.length) {
+            jumpE *= network.variables[factor.variables[factorVariableIndex]].getLength();
             factorVariableIndex++;
         }
 

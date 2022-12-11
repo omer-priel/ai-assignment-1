@@ -383,9 +383,9 @@ public class BNetwork {
             int[] parents = this.parents[factorVariable];
 
             // load the factor variables
-            List<Integer> factorVariables = new LinkedList<>();
+            List<Integer> factorVariablesList = new ArrayList<>(1 + parents.length);
 
-            List<Integer> originVariables = new LinkedList<>();
+            List<Integer> originVariables = new ArrayList<>(1 + parents.length);
             originVariables.add(factorVariable);
             originVariables.addAll(Arrays.stream(parents).boxed().collect(Collectors.toList()));
 
@@ -407,13 +407,19 @@ public class BNetwork {
                 }
 
                 if (!isEvidence) {
-                    factorVariables.add(variable);
+                    factorVariablesList.add(variable);
                     changeableVariablesIndexes.add(i);
                 }
             }
 
             // only factors with variables (factors with more than one probability).
-            if (factorVariables.size() > 0) {
+            if (factorVariablesList.size() > 0) {
+                // factorVariablesList to factorVariables
+                int[] factorVariables = new int[factorVariablesList.size()];
+                for (int i = 0; i < factorVariables.length; i++) {
+                    factorVariables[i] = factorVariablesList.get(i);
+                }
+
                 // load the factor probabilities
                 List<Double> factorProbabilities = new LinkedList<>();
 
@@ -508,7 +514,7 @@ public class BNetwork {
                         return (factorA.probabilities.size() > factorB.probabilities.size()) ? 1 : -1;
                     }
 
-                    return variables[factorA.variables.get(0)].getName().compareTo(variables[factorB.variables.get(0)].getName());
+                    return variables[factorA.variables[0]].getName().compareTo(variables[factorB.variables[0]].getName());
                 });
 
                 // join the Factors
