@@ -379,7 +379,7 @@ public class BNetwork {
 
         for (int variableIndex = 0; variableIndex < net.size(); variableIndex++) {
             // init
-            Integer factorVariable = net.get(variableIndex);
+            int factorVariable = net.get(variableIndex);
             int[] parents = this.parents[factorVariable];
 
             // load the factor variables
@@ -414,19 +414,21 @@ public class BNetwork {
 
             // only factors with variables (factors with more than one probability).
             if (factorVariablesList.size() > 0) {
-                // factorVariablesList to factorVariables
+                // factorVariablesList to factorVariables and get probabilities length
                 int[] factorVariables = new int[factorVariablesList.size()];
+                int probabilitiesLength = 1;
+
                 for (int i = 0; i < factorVariables.length; i++) {
                     factorVariables[i] = factorVariablesList.get(i);
+                    probabilitiesLength *= this.variables[factorVariables[i]].getLength();
                 }
 
                 // load the factor probabilities
-                List<Double> factorProbabilities = new LinkedList<>();
+                double[] factorProbabilities = new double[probabilitiesLength];
 
                 Collections.reverse(changeableVariablesIndexes);
 
-                int k = changeableVariablesIndexes.size();
-                while (k != -1) {
+                for (int probabilityIndex = 0; probabilityIndex < probabilitiesLength; probabilityIndex++) {
                     // add new factor probability
                     int cptIndex = values[0];
                     int jump = 1;
@@ -439,10 +441,10 @@ public class BNetwork {
                         cptIndex += values[j] * jump;
                     }
 
-                    factorProbabilities.add(this.CPTs[factorVariable][cptIndex]);
+                    factorProbabilities[probabilityIndex] = this.CPTs[factorVariable][cptIndex];
 
                     // move to next values
-                    k--;
+                    int k = changeableVariablesIndexes.size() - 1;
                     boolean hasNext = true;
                     while (k >= 0 && hasNext) {
                         int variableKey = originVariables.get(changeableVariablesIndexes.get(k));
@@ -510,8 +512,8 @@ public class BNetwork {
             if (factorsToJoin.size() > 0) {
                 // ordering the factors to join
                 factorsToJoin.sort((factorA, factorB) -> {
-                    if (factorA.probabilities.size() != factorB.probabilities.size()) {
-                        return (factorA.probabilities.size() > factorB.probabilities.size()) ? 1 : -1;
+                    if (factorA.probabilities.length != factorB.probabilities.length) {
+                        return (factorA.probabilities.length > factorB.probabilities.length) ? 1 : -1;
                     }
 
                     return variables[factorA.variables[0]].getName().compareTo(variables[factorB.variables[0]].getName());
@@ -527,7 +529,7 @@ public class BNetwork {
                 joinedFactor = Factor.eliminate(this, query, joinedFactor, hidden);
 
                 // add the factor if it has more than probability
-                if (joinedFactor.probabilities.size() > 1) {
+                if (joinedFactor.probabilities.length > 1) {
                     factors.add(firstFactorIndex, joinedFactor);
                 }
             }
@@ -539,10 +541,8 @@ public class BNetwork {
             lastFactor = Factor.join(this, query, lastFactor, factors.get(i));
         }
 
-        double[] probabilities = lastFactor.probabilities.stream().mapToDouble(i->i).toArray();
-
         // result
-        this.calcProbability(query, probabilities);
+        this.calcProbability(query, lastFactor.probabilities);
 
         this.printResult(query);
     }

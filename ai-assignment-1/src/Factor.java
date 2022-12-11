@@ -5,15 +5,15 @@ import java.util.List;
 
 public class Factor {
     public int[] variables;
-    public List<Double> probabilities;
+    public double[] probabilities;
 
-    public Factor(int[] variables, List<Double> probabilities) {
+    public Factor(int[] variables, double[] probabilities) {
         this.variables = variables;
         this.probabilities = probabilities;
     }
 
     // getters
-    public boolean variableExists(Integer variable) {
+    public boolean variableExists(int variable) {
         for (int i = 0; i < this.variables.length; i++) {
             if (this.variables[i] == variable) {
                 return true;
@@ -23,23 +23,6 @@ public class Factor {
     }
 
     // static operations
-//    static public List<Integer> unionGroups(List<Integer> groupA, List<Integer> groupB) {
-//        List<Integer> union = new LinkedList<>(groupA);
-//
-//        for (int i = 0; i < groupB.size(); i++) {
-//            boolean inA = false;
-//            for (int j = 0; j < groupA.size() && !inA; j++) {
-//                inA = groupB.get(i).equals((groupA.get(j)));
-//            }
-//
-//            if (!inA) {
-//             union.add(groupB.get(i));
-//            }
-//        }
-//
-//        return union;
-//    }
-
     static public int[] unionGroups(int[] groupA, int[] groupB) {
         int[] union = new int[groupA.length + groupB.length];
 
@@ -73,8 +56,14 @@ public class Factor {
         // get the factor variables
         int[] factorVariables = unionGroups(factorA.variables, factorB.variables);
 
+        // get the probabilities length
+        int factorProbabilitiesLength = 1;
+        for (int i = 0; i < factorVariables.length; i++) {
+            factorProbabilitiesLength *= network.variables[factorVariables[i]].getLength();
+        }
+
         // get the probabilities
-        List<Double> factorProbabilities = new LinkedList<>();
+        double[] factorProbabilities = new double[factorProbabilitiesLength];
 
         int[] values = new int[factorVariables.length];
         Arrays.fill(values, 0);
@@ -99,8 +88,7 @@ public class Factor {
             indexesB[i] = j;
         }
 
-        int k = 0;
-        while (k < values.length) {
+        for (int probabilityIndex = 0; probabilityIndex < factorProbabilitiesLength; probabilityIndex++) {
             // add new probability to the new factor
             int cptIndexA = 0;
             int jumpA = 1;
@@ -123,14 +111,14 @@ public class Factor {
                 jumpB *= network.variables[variable].getLength();
             }
 
-            double probabilityA = factorA.probabilities.get(cptIndexA);
-            double probabilityB = factorB.probabilities.get(cptIndexB);
+            double probabilityA = factorA.probabilities[cptIndexA];
+            double probabilityB = factorB.probabilities[cptIndexB];
 
-            factorProbabilities.add(probabilityA * probabilityB);
+            factorProbabilities[probabilityIndex] = probabilityA * probabilityB;
             query.results.multiplies++;
 
             // move to next value
-            k = 0;
+            int k = 0;
             while (k < values.length && values[k] == network.variables[factorVariables[k]].getLength() - 1) {
                 values[k] = 0;
                 k++;
@@ -138,7 +126,6 @@ public class Factor {
 
             if (k < values.length) {
                 values[k]++;
-                k = 0;
             }
         }
 
@@ -149,24 +136,15 @@ public class Factor {
     static public Factor eliminate(BNetwork network, Query query, Factor factor, int variable) {
         int[] variables = new int[factor.variables.length - 1];
 
-        int variableNewIndex = 0;
-        for (int i = 0; i < factor.variables.length; i++) {
-            if (factor.variables[i] != variable) {
-                variables[variableNewIndex] = factor.variables[i];
-                variableNewIndex++;
-            }
-        }
-
-        // get the probabilities
-        List<Double> probabilities = new ArrayList<>();
-
-        int jumpS = 1;
+        // get the new factor variables and the length of the new factor
+        int variablesBeforeLength = 1;
         int variableLength;
-        int jumpE = 1;
+        int variablesAfterLength = 1;
 
         int factorVariableIndex = 0;
         while (factor.variables[factorVariableIndex] != variable) {
-            jumpS *= network.variables[factor.variables[factorVariableIndex]].getLength();
+            variables[factorVariableIndex] = factor.variables[factorVariableIndex];
+            variablesBeforeLength *= network.variables[factor.variables[factorVariableIndex]].getLength();
             factorVariableIndex++;
         }
 
@@ -174,21 +152,28 @@ public class Factor {
         factorVariableIndex++;
 
         while (factorVariableIndex < factor.variables.length) {
-            jumpE *= network.variables[factor.variables[factorVariableIndex]].getLength();
+            variables[factorVariableIndex - 1] = factor.variables[factorVariableIndex];
+
+            variablesAfterLength *= network.variables[factor.variables[factorVariableIndex]].getLength();
             factorVariableIndex++;
         }
 
-        for (int k = 0; k < jumpE; k++) {
-            for (int j = 0; j < jumpS; j++) {
-                int probabilityIndex = k * jumpS * variableLength  + j;
+        // get the probabilities
+        double[] probabilities = new double[variablesBeforeLength * variablesAfterLength];
 
-                double probability = factor.probabilities.get(probabilityIndex);
+        int probabilityNewIndex = 0;
+        for (int k = 0; k < variablesAfterLength; k++) {
+            for (int j = 0; j < variablesBeforeLength; j++) {
+                int probabilityIndex = k * variablesBeforeLength * variableLength + j;
+
+                double probability = factor.probabilities[probabilityIndex];
                 for (int i = 1; i < variableLength; i++) {
-                    probability += factor.probabilities.get(probabilityIndex + i * jumpS);
+                    probability += factor.probabilities[probabilityIndex + i * variablesBeforeLength];
                     query.results.additions++;
                 }
 
-                probabilities.add(probability);
+                probabilities[probabilityNewIndex] = probability;
+                probabilityNewIndex++;
             }
         }
 
