@@ -450,7 +450,7 @@ public class BNetwork {
                 } while (k >= 0);
 
                 // add the factor
-                Factor factor = new Factor(this, factorVariables, factorProbabilities);
+                Factor factor = new Factor(factorVariables, factorProbabilities);
                 factors.add(factor);
             }
         }
@@ -510,11 +510,11 @@ public class BNetwork {
                 // join the Factors
                 Factor joinedFactor = factorsToJoin.get(0);
                 for (int i = 1; i < factorsToJoin.size(); i++) {
-                    joinedFactor = Factor.join(query, joinedFactor, factorsToJoin.get(i));
+                    joinedFactor = Factor.join(this, query, joinedFactor, factorsToJoin.get(i));
                 }
 
                 // eliminate factor
-                joinedFactor = Factor.eliminate(query, joinedFactor, hidden);
+                joinedFactor = Factor.eliminate(this, query, joinedFactor, hidden);
 
                 // add the factor if it has more than probability
                 if (joinedFactor.probabilities.size() > 1) {
@@ -526,7 +526,7 @@ public class BNetwork {
         // join all the last factors
         Factor lastFactor = factors.get(0);
         for (int i = 1; i < factors.size(); i++) {
-            lastFactor = Factor.join(query, lastFactor, factors.get(i));
+            lastFactor = Factor.join(this, query, lastFactor, factors.get(i));
         }
 
         double[] probabilities = lastFactor.probabilities.stream().mapToDouble(i->i).toArray();

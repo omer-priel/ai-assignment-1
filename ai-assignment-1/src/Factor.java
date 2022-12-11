@@ -4,12 +4,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class Factor {
-    private BNetwork network;
     public List<Integer> variables;
     public List<Double> probabilities;
 
-    public Factor( BNetwork network, List<Integer> variables, List<Double> probabilities) {
-        this.network = network;
+    public Factor(List<Integer> variables, List<Double> probabilities) {
         this.variables = variables;
         this.probabilities = probabilities;
     }
@@ -37,9 +35,7 @@ public class Factor {
         return union;
     }
 
-    static public Factor join(Query query, Factor factorA, Factor factorB) {
-        BNetwork network = factorA.network;
-
+    static public Factor join(BNetwork network, Query query, Factor factorA, Factor factorB) {
         // get the factor variables
         List<Integer> factorVariables = unionGroups(factorA.variables, factorB.variables);
 
@@ -103,10 +99,10 @@ public class Factor {
         } while (k < values.length);
 
         // create the factor
-        return new Factor(network, factorVariables, factorProbabilities);
+        return new Factor(factorVariables, factorProbabilities);
     }
 
-    static public Factor eliminate(Query query, Factor factor, Integer variable) {
+    static public Factor eliminate(BNetwork network, Query query, Factor factor, Integer variable) {
         List<Integer> variables = new ArrayList<>(factor.variables);
         variables.remove(variable);
 
@@ -119,15 +115,15 @@ public class Factor {
 
         int factorVariableIndex = 0;
         while (!factor.variables.get(factorVariableIndex).equals(variable)) {
-            jumpS *= factor.network.variables[factor.variables.get(factorVariableIndex)].getLength();
+            jumpS *= network.variables[factor.variables.get(factorVariableIndex)].getLength();
             factorVariableIndex++;
         }
 
-        variableLength = factor.network.variables[factor.variables.get(factorVariableIndex)].getLength();
+        variableLength = network.variables[factor.variables.get(factorVariableIndex)].getLength();
         factorVariableIndex++;
 
         while (factorVariableIndex < factor.variables.size()) {
-            jumpE *= factor.network.variables[factor.variables.get(factorVariableIndex)].getLength();
+            jumpE *= network.variables[factor.variables.get(factorVariableIndex)].getLength();
             factorVariableIndex++;
         }
 
@@ -145,6 +141,6 @@ public class Factor {
             }
         }
 
-        return new Factor(factor.network, variables, probabilities);
+        return new Factor(variables, probabilities);
     }
 }
