@@ -344,7 +344,7 @@ public class BNetwork {
     }
 
     // callQuery2
-    private void variableElimination_RemoveLeavesFactors(List<Integer> net, List<Integer> hiddenVariables) {
+    private void variableEliminationRemoveLeavesFactors(List<Integer> net, List<Integer> hiddenVariables) {
         int hiddenIndex = 0;
         while (hiddenIndex < hiddenVariables.size()) {
             Integer hidden = hiddenVariables.get(hiddenIndex);
@@ -373,17 +373,13 @@ public class BNetwork {
         }
     }
 
-    private List<Factor> variableElimination_CreateFactors(Query query, List<Integer> netAsList) {
-        // net to
-        Integer[] net = new Integer[netAsList.size()];
-        netAsList.toArray(net);
-
+    private List<Factor> variableEliminationCreateFactors(Query query, List<Integer> net) {
         // create factors
         List<Factor> factors = new LinkedList<>();
 
-        for (int variableIndex = 0; variableIndex < net.length; variableIndex++) {
+        for (int variableIndex = 0; variableIndex < net.size(); variableIndex++) {
             // init
-            Integer factorVariable = net[variableIndex];
+            Integer factorVariable = net.get(variableIndex);
             int[] parents = this.parents[factorVariable];
 
             // load the factor variables
@@ -466,15 +462,15 @@ public class BNetwork {
         // init
         List<Integer> hiddenVariables = Arrays.stream(getHidden(query)).boxed().collect(Collectors.toList());
 
-        List<Integer> net = new LinkedList<>(hiddenVariables); // the variables that need for the query
+        List<Integer> net = new ArrayList<>(hiddenVariables); // the variables that need for the query
         net.add(query.queryVariable);
         net.addAll(Arrays.stream(query.evidencesVariables).boxed().collect(Collectors.toList()));
 
         // remove unuseful hidden variables
-        variableElimination_RemoveLeavesFactors(net, hiddenVariables);
+        variableEliminationRemoveLeavesFactors(net, hiddenVariables);
 
         // create factors
-        List<Factor> factors = variableElimination_CreateFactors(query, net);
+        List<Factor> factors = variableEliminationCreateFactors(query, net);
 
         // ordering the hidden variables
         hiddenVariables.sort(hiddenSortingComparator);
@@ -485,7 +481,7 @@ public class BNetwork {
             hiddenVariables.remove(0);
 
             // collect factors with the hidden to single factor
-            List<Factor> factorsToJoin = new LinkedList<>();
+            List<Factor> factorsToJoin = new ArrayList<>(factors.size());
             int firstFactorIndex = -1;
             for (int i = 0; i < factors.size(); i++) {
                 Factor factor = factors.get(i);
@@ -513,10 +509,8 @@ public class BNetwork {
 
                 // join the Factors
                 Factor joinedFactor = factorsToJoin.get(0);
-                factorsToJoin.remove(0);
-                while (!factorsToJoin.isEmpty()) {
-                    joinedFactor = Factor.join(query, joinedFactor, factorsToJoin.get(0));
-                    factorsToJoin.remove(0);
+                for (int i = 1; i < factorsToJoin.size(); i++) {
+                    joinedFactor = Factor.join(query, joinedFactor, factorsToJoin.get(i));
                 }
 
                 // eliminate factor
@@ -531,10 +525,8 @@ public class BNetwork {
 
         // join all the last factors
         Factor lastFactor = factors.get(0);
-        factors.remove(0);
-        while (!factors.isEmpty()) {
-            lastFactor = Factor.join(query, lastFactor, factors.get(0));
-            factors.remove(0);
+        for (int i = 1; i < factors.size(); i++) {
+            lastFactor = Factor.join(query, lastFactor, factors.get(i));
         }
 
         double[] probabilities = lastFactor.probabilities.stream().mapToDouble(i->i).toArray();
