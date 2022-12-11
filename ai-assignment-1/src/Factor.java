@@ -43,7 +43,7 @@ public class Factor {
         List<Double> factorProbabilities = new LinkedList<>();
 
         int[] values = new int[factorVariables.size()];
-        Arrays.fill(values, -1);
+        Arrays.fill(values, 0);
 
         int[] indexesA = new int[factorA.variables.size()];
         for (int i = 0; i < indexesA.length; i++) {
@@ -55,48 +55,48 @@ public class Factor {
             indexesB[i] = factorVariables.indexOf(factorB.variables.get(i));
         }
 
-        int k = values.length - 1;
-        do {
-            if (k < 0) {
-                // add new probability to the new factor
-                int cptIndexA = 0;
-                int jumpA = 1;
-                int cptIndexB = 0;
-                int jumpB = 1;
+        int k = 0;
+        while (k < values.length) {
+            // add new probability to the new factor
+            int cptIndexA = 0;
+            int jumpA = 1;
+            int cptIndexB = 0;
+            int jumpB = 1;
 
-                for (int i = 0; i < factorA.variables.size(); i++) {
-                    int variable = factorA.variables.get(i);
+            for (int i = 0; i < factorA.variables.size(); i++) {
+                int variable = factorA.variables.get(i);
 
-                    cptIndexA += values[indexesA[i]] * jumpA;
+                cptIndexA += values[indexesA[i]] * jumpA;
 
-                    jumpA *= network.variables[variable].getLength();
-                }
-
-                for (int i = 0; i < factorB.variables.size(); i++) {
-                    int variable = factorB.variables.get(i);
-
-                    cptIndexB += values[indexesB[i]] * jumpB;
-
-                    jumpB *= network.variables[variable].getLength();
-                }
-
-                double probabilityA = factorA.probabilities.get(cptIndexA);
-                double probabilityB = factorB.probabilities.get(cptIndexB);
-
-                factorProbabilities.add(probabilityA * probabilityB);
-                query.results.multiplies++;
-
-                k++;
-            } else {
-                if (values[k] == network.variables[factorVariables.get(k)].getLength() - 1) {
-                    values[k] = -1;
-                    k++;
-                } else {
-                    values[k]++;
-                    k--;
-                }
+                jumpA *= network.variables[variable].getLength();
             }
-        } while (k < values.length);
+
+            for (int i = 0; i < factorB.variables.size(); i++) {
+                int variable = factorB.variables.get(i);
+
+                cptIndexB += values[indexesB[i]] * jumpB;
+
+                jumpB *= network.variables[variable].getLength();
+            }
+
+            double probabilityA = factorA.probabilities.get(cptIndexA);
+            double probabilityB = factorB.probabilities.get(cptIndexB);
+
+            factorProbabilities.add(probabilityA * probabilityB);
+            query.results.multiplies++;
+
+            // move to next value
+            k = 0;
+            while (k < values.length && values[k] == network.variables[factorVariables.get(k)].getLength() - 1) {
+                values[k] = 0;
+                k++;
+            }
+
+            if (k < values.length) {
+                values[k]++;
+                k = 0;
+            }
+        }
 
         // create the factor
         return new Factor(factorVariables, factorProbabilities);
