@@ -1,17 +1,29 @@
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
 
+/**
+ * Entry Point class of the application
+ */
 class Ex1 {
 
   // testing
+
+  /**
+   * Print the java version
+   */
   public static void printJavaVersion() {
     // Print java version
     String version = System.getProperty("java.version");
     System.out.println("java version: " + version);
   }
 
-  private static void setTestsInputs() {
+  /**
+   * set input from memory
+   */
+  private static void setTestsInput() {
     String input = "alarm_net.xml" +
             "\nP(B=T|J=T,M=T),1" +
             "\nP(B=T|J=T,M=T),2" +
@@ -35,29 +47,50 @@ class Ex1 {
     scanner = new Scanner(inputStream);
   }
 
+  // production
+
+  /**
+   * load the input from file called input.txt
+   *
+   * @throws FileNotFoundException the file not found
+   */
+  private static void setProductionInput() throws FileNotFoundException {
+    scanner = new Scanner(new File("input.txt"));
+  }
+
   // input scanner
   static private Scanner scanner = new Scanner(System.in);
 
+  /**
+   * Entry Point of the application
+   *
+   * @param args args
+   */
   public static void main(String[] args) {
-    // only for development
+    // development
     // printJavaVersion();
-    // setTestsInputs();
+    // setTestsInput();
+
+    // production
+    try {
+      setProductionInput();
+    } catch (FileNotFoundException ex) {
+      System.out.println("Can't load the input file");
+      return;
+    }
 
     // load the network
-    BNetwork network = null;
+    BNetwork network;
 
     String networkPath = scanner.nextLine();
     try {
       network = new BNetwork(networkPath);
     } catch (Exception ex) {
       System.out.println("Can't load the " + networkPath + " file");
-    }
-
-    if (network == null) {
       return;
     }
 
-    // main loop
+    // the main loop
     while (scanner.hasNext()) {
       String queryInput = scanner.nextLine();
       Query query = new Query(network, queryInput);

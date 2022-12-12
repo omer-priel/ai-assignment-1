@@ -10,9 +10,19 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+/**
+ * Saving Bayesian Network
+ */
 public class BNetwork {
     // static utils
-    private static Document parseXML(String filepath) throws ParserConfigurationException, IOException, SAXException {
+
+    /**
+     * load xml file to xml Document
+     *
+     * @param filepath xml filepath
+     * @return xml Document
+     */
+    private static Document loadXMLFile(String filepath) throws ParserConfigurationException, IOException, SAXException {
         File file = new File(filepath);
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
@@ -25,7 +35,7 @@ public class BNetwork {
      * array of variables.
      * used for converting to keys and for variables lengths.
      */
-    public Variable[] variables = null;
+    public VariableClass[] variableClasses = null;
 
     /**
      * array of the lengths (count of the values) of the variables.
@@ -45,10 +55,15 @@ public class BNetwork {
      */
     public double[][] CPTs = null;
 
+    /**
+     * Create Bayesian Network from xml file
+     *
+     * @param filepath path of the xml file
+     */
     public BNetwork(String filepath) throws ParserConfigurationException, IOException, SAXException {
 
         // load the network from XML
-        Document document= BNetwork.parseXML(filepath);
+        Document document= BNetwork.loadXMLFile(filepath);
         Element network = (Element)document.getElementsByTagName("NETWORK").item(0);
 
         // init
@@ -62,7 +77,7 @@ public class BNetwork {
      * @param network network xml node
      */
     private void initVariables(Element network) {
-        List<Variable> variables = new LinkedList<>();
+        List<VariableClass> variableClasses = new LinkedList<>();
 
         NodeList variablesElements = network.getElementsByTagName("VARIABLE");
 
@@ -82,17 +97,17 @@ public class BNetwork {
             String[] valuesAsArray = new String[values.size()];
             values.toArray(valuesAsArray);
 
-            Variable variable = new Variable(name, valuesAsArray);
-            variables.add(variable);
+            VariableClass variableClass = new VariableClass(name, valuesAsArray);
+            variableClasses.add(variableClass);
         }
 
-        this.variables = new Variable[variables.size()];
-        variables.toArray(this.variables);
+        this.variableClasses = new VariableClass[variableClasses.size()];
+        variableClasses.toArray(this.variableClasses);
 
-        this.variablesLengths = new int[variables.size()];
+        this.variablesLengths = new int[variableClasses.size()];
 
-        for (int i = 0; i < this.variables.length; i++) {
-            this.variablesLengths[i] = this.variables[i].getLength();
+        for (int i = 0; i < this.variableClasses.length; i++) {
+            this.variablesLengths[i] = this.variableClasses[i].getLength();
         }
     }
 
@@ -102,7 +117,7 @@ public class BNetwork {
      * @param network network xml node
      */
     private void initCPTs(Element network) {
-        int variablesLen = this.variables.length;
+        int variablesLen = this.variableClasses.length;
 
         this.parents = new int[variablesLen][];
         this.CPTs = new double[variablesLen][];
@@ -159,8 +174,8 @@ public class BNetwork {
      * @return key of the variable and -1 if this variable not exists in the network
      */
     public int getVariableKey(String name) {
-        for (int i = 0; i < variables.length; i++) {
-            if (variables[i].getName().equals(name)) {
+        for (int i = 0; i < variableClasses.length; i++) {
+            if (variableClasses[i].getName().equals(name)) {
                 return i;
             }
         }

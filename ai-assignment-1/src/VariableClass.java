@@ -1,14 +1,31 @@
-public class Variable {
+/**
+ * Saving Variable Class info
+ * Using for converting strings to indexes
+ */
+public class VariableClass {
     // Members
+    /**
+     * the variable name
+     */
     private final String name;
+
+    /**
+     * the values (outcomes) of the variable
+     */
     private final String[] values;
 
-    public Variable(String name, String[] values) {
+    public VariableClass(String name, String[] values) {
         this.name = name;
         this.values = values;
     }
 
     // getters
+
+    /**
+     * return factor name
+     *
+     * @return factor name
+     */
     public String getName() {
         return this.name;
     }

@@ -39,11 +39,11 @@ make publish
 ### Data
 
 BNetwork: class that present bayesian network \
-Variable: class of variable information, name, values, length\
+VariableClass: class of variableClass information, name, values, length\
 Query: class that present query as binary data (keys, etc...)
 
 Notes:
-* The algorithms using keys (indexes) and not the actual variable names and values.
+* The algorithms using keys (indexes) and not the actual variableClass names and values.
 * Parents saved reverses
 
 ## Author

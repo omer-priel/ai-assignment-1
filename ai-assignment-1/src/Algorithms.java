@@ -8,12 +8,13 @@ public class Algorithms {
      * get the hidden variables of query
      *
      * @param query the query
+     * @param network the network
      * @return array of variables keys
      */
     static private int[] getHidden(Query query, BNetwork network) {
-        int[] hidden = new int[network.variables.length - 1 - query.evidencesVariables.length];
+        int[] hidden = new int[network.variableClasses.length - 1 - query.evidencesVariables.length];
 
-        boolean[] isHidden = new boolean[network.variables.length];
+        boolean[] isHidden = new boolean[network.variableClasses.length];
         Arrays.fill(isHidden, true);
 
         isHidden[query.queryVariable] = false;
@@ -63,6 +64,7 @@ public class Algorithms {
      * call (run) a single query
      *
      * @param query the query
+     * @param network the network
      */
     static public void callQuery(Query query, BNetwork network) {
         // if dos not exists evidences
@@ -117,11 +119,11 @@ public class Algorithms {
         printResult(query.results);
     }
 
-    // callQueryWithoutEvidences
     /**
      * if dos not exists evidences
      *
      * @param query the query
+     * @param network the network
      */
     static private void callQueryWithoutEvidences(Query query, BNetwork network) {
         double[] cpt = network.CPTs[query.queryVariable];
@@ -147,6 +149,12 @@ public class Algorithms {
         query.results.probability = probability;
     }
 
+    /**
+     * Simple query
+     *
+     * @param query the query
+     * @param network the network
+     */
     static private void callQuery1(Query query, BNetwork network) {
         // init
         double[] probabilities = new double[network.variablesLengths[query.queryVariable]];
@@ -156,7 +164,7 @@ public class Algorithms {
 
         // calc
         for (int probabilityIndex = 0; probabilityIndex < probabilities.length; probabilityIndex++) {
-            int[] values = new int[network.variables.length];
+            int[] values = new int[network.variableClasses.length];
             Arrays.fill(values, 0);
 
             values[query.queryVariable] = probabilityIndex;
@@ -169,7 +177,7 @@ public class Algorithms {
             while (k != -1) {
                 // get probability of one value of hidden variables
                 double subProbability = 1;
-                for (int i = 0; i < network.variables.length; i++) {
+                for (int i = 0; i < network.variableClasses.length; i++) {
                     int cptIndex = values[i];
                     int jump = network.variablesLengths[i];
 
@@ -208,6 +216,7 @@ public class Algorithms {
      * This query using Variable Elimination
      *
      * @param query the query
+     * @param network the network
      */
     static private void callQuery2(Query query, BNetwork network){
         callBasedVariableElimination(query, network, (hiddenVariables, factors) -> 0);
@@ -218,6 +227,7 @@ public class Algorithms {
      * Min-fill: Choose vertices to minimize the size of the factor that will be added to the graph.
      *
      * @param query the query
+     * @param network the network
      */
     static private void callQuery3(Query query, BNetwork network) {
         callBasedVariableElimination(query, network, (hiddenVariables, factors) -> {
@@ -225,7 +235,7 @@ public class Algorithms {
             int minFactorCreatedLength = -1;
             int chooseIndex = -1;
 
-            boolean[] factorVariables = new boolean[network.variables.length];
+            boolean[] factorVariables = new boolean[network.variableClasses.length];
 
             for (int i = 0; i < hiddenVariables.size(); i++) {
                 int variable = hiddenVariables.get(i);
@@ -262,6 +272,13 @@ public class Algorithms {
     }
 
     // factor operations
+    /**
+     * union groups
+     *
+     * @param groupA group A
+     * @param groupB group B
+     * @return the union of the groups
+     */
     static public int[] unionGroups(int[] groupA, int[] groupB) {
         int[] union = new int[groupA.length + groupB.length];
 
@@ -289,6 +306,15 @@ public class Algorithms {
         return fixedUnion;
     }
 
+    /**
+     * Join two factors
+     *
+     * @param network the network of the factors
+     * @param query the query of the factors
+     * @param factorA factor A
+     * @param factorB factor B
+     * @return joined factor
+     */
     static public Factor join(BNetwork network, Query query, Factor factorA, Factor factorB) {
         // get the factor variables
         int[] factorVariables = unionGroups(factorA.variables, factorB.variables);
@@ -370,6 +396,15 @@ public class Algorithms {
         return new Factor(factorVariables, factorProbabilities);
     }
 
+    /**
+     * eliminate variable from factor
+     *
+     * @param network the network of the factor
+     * @param query the query of the factor
+     * @param factor the factor
+     * @param variable the variable
+     * @return the eliminated factor
+     */
     static public Factor eliminate(BNetwork network, Query query, Factor factor, int variable) {
         int[] variables = new int[factor.variables.length - 1];
 
@@ -418,6 +453,14 @@ public class Algorithms {
     }
 
     // Variable Elimination
+
+    /**
+     * remove all the hidden variables that not ancestor of the query variable of evidence variable
+     *
+     * @param network the origin network
+     * @param net the needed variables for variable elimination
+     * @param hiddenVariables hidden variables
+     */
     static private void variableEliminationRemoveLeavesFactors(BNetwork network, List<Integer> net, List<Integer> hiddenVariables) {
         int hiddenIndex = 0;
         while (hiddenIndex < hiddenVariables.size()) {
@@ -445,6 +488,14 @@ public class Algorithms {
         }
     }
 
+    /**
+     * create factors list from list of variables
+     *
+     * @param query the query
+     * @param network the origin network
+     * @param net the needed variables for variable elimination
+     * @return the factors list
+     */
     static private List<Factor> variableEliminationCreateFactors(Query query, BNetwork network, List<Integer> net) {
         // create factors
         List<Factor> factors = new LinkedList<>();
@@ -540,6 +591,13 @@ public class Algorithms {
         return factors;
     }
 
+    /**
+     * base for call query based on Variable Elimination
+     *
+     * @param query the query
+     * @param network the network
+     * @param hiddenChooser hiddenChooser for choosing the hidden to eliminate in the loop
+     */
     static private void callBasedVariableElimination(Query query, BNetwork network, HiddenChooser hiddenChooser) {
         // init
         List<Integer> hiddenVariables = Arrays.stream(getHidden(query, network)).boxed().collect(Collectors.toList());
@@ -556,10 +614,10 @@ public class Algorithms {
 
         // ordering the hidden variables
         hiddenVariables.sort((variableAKey, variableBKey) -> {
-            Variable variableA = network.variables[variableAKey];
-            Variable variableB = network.variables[variableBKey];
+            VariableClass variableClassA = network.variableClasses[variableAKey];
+            VariableClass variableClassB = network.variableClasses[variableBKey];
 
-            return variableA.getName().compareTo(variableB.getName());
+            return variableClassA.getName().compareTo(variableClassB.getName());
         });
 
         // Variable Elimination
@@ -592,7 +650,7 @@ public class Algorithms {
                         return (factorA.probabilities.length > factorB.probabilities.length) ? 1 : -1;
                     }
 
-                    return network.variables[factorA.variables[0]].getName().compareTo(network.variables[factorB.variables[0]].getName());
+                    return network.variableClasses[factorA.variables[0]].getName().compareTo(network.variableClasses[factorB.variables[0]].getName());
                 });
 
                 // join the Factors

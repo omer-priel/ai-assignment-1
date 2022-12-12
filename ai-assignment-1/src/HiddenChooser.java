@@ -1,5 +1,8 @@
 import java.util.List;
 
+/**
+ * Hidden Chooser for Variable Elimination
+ */
 @FunctionalInterface
 public interface HiddenChooser {
     /**
