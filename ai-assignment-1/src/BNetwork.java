@@ -225,9 +225,9 @@ public class BNetwork {
      *
      * @param query
      */
-    private void printResult(Query query) {
+    private void printResult(QueryResults results) {
         // printing the results
-        System.out.println(String.format("%.07f,%d,%d", query.results.probability, query.results.additions, query.results.multiplies));
+        System.out.println(String.format("%.07f,%d,%d", results.probability, results.additions, results.multiplies));
     }
 
     // call query
@@ -238,11 +238,42 @@ public class BNetwork {
      * @param query
      */
     public void callQuery(Query query) {
+        // if dos not exists evidences
         if (query.evidencesVariables.length == 0) {
             callQueryWithoutEvidences(query);
-            return;
+            this.printResult(query.results);
         }
 
+        // check if the result in CPT
+        int[] parents = this.parents[query.queryVariable];
+        boolean inCPT = parents.length == query.evidencesVariables.length;
+        for (int i = 0; i < query.evidencesVariables.length && inCPT; i++) {
+            inCPT = false;
+            for (int j = 0; !inCPT && j < parents.length; j++) {
+                inCPT = query.evidencesVariables[i] == parents[j];
+            }
+        }
+
+        if (inCPT) {
+            int index = query.queryValue;
+            int jump = 1;
+
+            for (int i = 0; i < parents.length; i++) {
+                jump *= this.variables[parents[i]].getLength();
+                int j = 0;
+                while (parents[i] != query.evidencesVariables[j]) {
+                    j++;
+                }
+
+                index += query.evidencesValues[j] * jump;
+            }
+
+            query.results.probability = this.CPTs[query.queryVariable][index];
+            this.printResult(query.results);
+
+            return;
+        }
+        // call query type
         switch (query.type) {
             case 1:
                 callQuery1(query);
@@ -254,9 +285,16 @@ public class BNetwork {
                 callQuery3(query);
                 break;
         }
+
+        this.printResult(query.results);
     }
 
     // callQueryWithoutEvidences
+    /**
+     * if dos not exists evidences
+     *
+     * @param query
+     */
     private void callQueryWithoutEvidences(Query query) {
         double[] cpt = this.CPTs[query.queryVariable];
 
@@ -279,8 +317,6 @@ public class BNetwork {
 
         // result
         query.results.probability = probability;
-
-        this.printResult(query);
     }
 
     // callQuery1
@@ -339,8 +375,6 @@ public class BNetwork {
 
         // result
         this.calcProbability(query, probabilities);
-
-        this.printResult(query);
     }
 
     // callQuery2
@@ -543,8 +577,6 @@ public class BNetwork {
 
         // result
         this.calcProbability(query, lastFactor.probabilities);
-
-        this.printResult(query);
     }
 
     private void callQuery2(Query query){

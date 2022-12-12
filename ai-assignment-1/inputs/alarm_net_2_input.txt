@@ -5,3 +5,6 @@ P(B=T|J=T,M=T),3
 P(J=T|B=T),1
 P(J=T|B=T),2
 P(J=T|B=T),3
+P(A=F|B=T,E=F),1
+P(A=F|B=T,E=F),2
+P(A=F|B=T,E=F),3
