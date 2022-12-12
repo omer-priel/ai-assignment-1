@@ -1,7 +1,4 @@
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -51,11 +48,14 @@ class Ex1 {
 
   /**
    * load the input from file called input.txt
+   * and change the output to file called output.txt
    *
    * @throws FileNotFoundException the file not found
    */
-  private static void setProductionInput() throws FileNotFoundException {
+  private static void setProductionInputAndOutput() throws FileNotFoundException {
     scanner = new Scanner(new File("input.txt"));
+
+    System.setOut(new PrintStream(new File("output.txt")));
   }
 
   // input scanner
@@ -67,17 +67,17 @@ class Ex1 {
    * @param args args
    */
   public static void main(String[] args) {
-    // development
-    // printJavaVersion();
-    // setTestsInput();
-
     // production
     try {
-      setProductionInput();
+      setProductionInputAndOutput();
     } catch (FileNotFoundException ex) {
       System.out.println("Can't load the input file");
       return;
     }
+
+    // development
+    // printJavaVersion();
+    // setTestsInput();
 
     // load the network
     BNetwork network;
