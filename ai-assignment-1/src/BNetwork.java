@@ -29,6 +29,11 @@ public class BNetwork {
     public Variable[] variables = null;
 
     /**
+     * array of the lengths (count of the values) of the variables.
+     */
+    public int[] variablesLengths = null;
+
+    /**
      * array for mapping variable to his parents.
      * parents[variable key][Pi] when Pi is the parent i of the variable
      */
@@ -44,13 +49,7 @@ public class BNetwork {
     public BNetwork(String filepath) throws ParserConfigurationException, IOException, SAXException {
 
         // load the network from XML
-        Document document;
-        try {
-            document = BNetwork.parseXML(filepath);
-        } catch (Exception ex) {
-            throw ex;
-        }
-
+        Document document= BNetwork.parseXML(filepath);
         Element network = (Element)document.getElementsByTagName("NETWORK").item(0);
 
         // init
@@ -64,7 +63,7 @@ public class BNetwork {
      * @param network network xml node
      */
     private void initVariables(Element network) {
-        List<Variable> variables = new LinkedList<Variable>();
+        List<Variable> variables = new LinkedList<>();
 
         NodeList variablesElements = network.getElementsByTagName("VARIABLE");
 
@@ -90,6 +89,12 @@ public class BNetwork {
 
         this.variables = new Variable[variables.size()];
         variables.toArray(this.variables);
+
+        this.variablesLengths = new int[variables.size()];
+
+        for (int i = 0; i < this.variables.length; i++) {
+            this.variablesLengths[i] = this.variables[i].getLength();
+        }
     }
 
     /**
@@ -167,8 +172,8 @@ public class BNetwork {
     /**
      * get variable by key
      *
-     * @param key
-     * @return
+     * @param key the index of the variable in variables
+     * @return the variable
      */
     public Variable getVariable(int key) {
         return this.variables[key];
@@ -179,7 +184,7 @@ public class BNetwork {
     /**
      * get the hidden variables of query
      *
-     * @param query
+     * @param query the query
      * @return array of variables keys
      */
     private int[] getHidden(Query query) {
@@ -207,7 +212,7 @@ public class BNetwork {
     /**
      * calculate query probability by list of normalized probabilities
      *
-     * @param query
+     * @param query the query
      * @param probabilities normalized probabilities array
      */
     private void calcProbability(Query query, double[] probabilities) {
@@ -221,21 +226,20 @@ public class BNetwork {
     }
 
     /**
-     * print result of query
+     * print results of query
      *
-     * @param query
+     * @param results results of query
      */
     private void printResult(QueryResults results) {
         // printing the results
-        System.out.println(String.format("%.07f,%d,%d", results.probability, results.additions, results.multiplies));
+        System.out.printf("%.05f,%d,%d%n", results.probability, results.additions, results.multiplies);
     }
 
     // call query
-
     /**
      * call (run) a single query
      *
-     * @param query
+     * @param query the query
      */
     public void callQuery(Query query) {
         // if dos not exists evidences
@@ -258,10 +262,10 @@ public class BNetwork {
             int index = query.queryValue;
             int jump = 1;
 
-            for (int i = 0; i < parents.length; i++) {
-                jump *= this.variables[parents[i]].getLength();
+            for (int parent : parents) {
+                jump *= this.variablesLengths[parent];
                 int j = 0;
-                while (parents[i] != query.evidencesVariables[j]) {
+                while (parent != query.evidencesVariables[j]) {
                     j++;
                 }
 
@@ -294,7 +298,7 @@ public class BNetwork {
     /**
      * if dos not exists evidences
      *
-     * @param query
+     * @param query the query
      */
     private void callQueryWithoutEvidences(Query query) {
         double[] cpt = this.CPTs[query.queryVariable];
@@ -303,7 +307,7 @@ public class BNetwork {
         double probability = cpt[i];
 
         if (this.parents[query.queryVariable].length > 0) {
-            int jump = cpt.length / this.variables[query.queryVariable].getLength();
+            int jump = cpt.length / this.variablesLengths[query.queryVariable];
 
             i += jump;
 
@@ -323,7 +327,7 @@ public class BNetwork {
     // callQuery1
     private void callQuery1(Query query) {
         // init
-        double[] probabilities = new double[this.variables[query.queryVariable].getLength()];
+        double[] probabilities = new double[this.variablesLengths[query.queryVariable]];
         Arrays.fill(probabilities, 0.0f);
 
         int[] hidden = getHidden(query);
@@ -345,12 +349,12 @@ public class BNetwork {
                 double subProbability = 1;
                 for (int i = 0; i < this.variables.length; i++) {
                     int cptIndex = values[i];
-                    int jump = this.variables[i].getLength();
+                    int jump = this.variablesLengths[i];
 
                     for (int j = 0; j < this.parents[i].length; j++) {
                         int parentKey = this.parents[i][j];
                         cptIndex += values[parentKey] * jump;
-                        jump *= this.variables[parentKey].getLength();
+                        jump *= this.variablesLengths[parentKey];
                     }
 
                     query.results.multiplies += (i == 0) ? 0 : 1; // the first one is 1
@@ -362,7 +366,7 @@ public class BNetwork {
 
                 // move to the next values
                 k--;
-                while (k >= 0 && values[hidden[k]] == this.variables[hidden[k]].getLength() - 1) {
+                while (k >= 0 && values[hidden[k]] == this.variablesLengths[hidden[k]] - 1) {
                     values[hidden[k]] = 0;
                     k--;
                 }
@@ -390,9 +394,7 @@ public class BNetwork {
                 int node = net.get(i);
                 if (node != hidden) {
                     for (int j = 0; j < this.parents[node].length && isLeave; j++) {
-                        if (this.parents[node][j] == hidden) {
-                            isLeave = false;
-                        }
+                        isLeave = (this.parents[node][j] != hidden);
                     }
                 }
             }
@@ -412,9 +414,8 @@ public class BNetwork {
         // create factors
         List<Factor> factors = new LinkedList<>();
 
-        for (int variableIndex = 0; variableIndex < net.size(); variableIndex++) {
+        for (int factorVariable : net) {
             // init
-            int factorVariable = net.get(variableIndex);
             int[] parents = this.parents[factorVariable];
 
             // load the factor variables
@@ -455,7 +456,7 @@ public class BNetwork {
 
                 for (int i = 0; i < factorVariables.length; i++) {
                     factorVariables[i] = factorVariablesList.get(i);
-                    probabilitiesLength *= this.variables[factorVariables[i]].getLength();
+                    probabilitiesLength *= this.variablesLengths[factorVariables[i]];
                 }
 
                 // load the factor probabilities
@@ -471,7 +472,7 @@ public class BNetwork {
                     for (int j = 1; j < originVariables.size(); j++) {
                         int originVariable = originVariables.get(j - 1);
 
-                        jump *= this.variables[originVariable].getLength();
+                        jump *= this.variablesLengths[originVariable];
 
                         cptIndex += values[j] * jump;
                     }
@@ -483,7 +484,7 @@ public class BNetwork {
                     boolean hasNext = true;
                     while (k >= 0 && hasNext) {
                         int variableKey = originVariables.get(changeableVariablesIndexes.get(k));
-                        hasNext = values[changeableVariablesIndexes.get(k)] == this.variables[variableKey].getLength() - 1;
+                        hasNext = values[changeableVariablesIndexes.get(k)] == this.variablesLengths[variableKey] - 1;
                         if (hasNext) {
                             values[changeableVariablesIndexes.get(k)] = 0;
                             k--;
@@ -492,7 +493,6 @@ public class BNetwork {
 
                     if (k != -1) {
                         values[changeableVariablesIndexes.get(k)]++;
-                        k = changeableVariablesIndexes.size();
                     }
                 }
 
@@ -587,26 +587,25 @@ public class BNetwork {
     }
 
     /**
-     * does query using Variable Elimination
+     * This query using Variable Elimination
      *
-     * @param query
+     * @param query the query
      */
     private void callQuery2(Query query){
         callBasedVariableElimination(query, (hiddenVariables, factors) -> 0);
     }
 
     /**
-     * does query using Variable Elimination
-     *
+     * This query using Variable Elimination
      * Min-fill: Choose vertices to minimize the size of the factor that will be added to the graph.
      *
-     * @param query
+     * @param query the query
      */
     private void callQuery3(Query query) {
         callBasedVariableElimination(query, (hiddenVariables, factors) -> {
 
             int minFactorCreatedLength = -1;
-            int choosedIndex = -1;
+            int chooseIndex = -1;
 
             boolean[] factorVariables = new boolean[this.variables.length];
 
@@ -615,11 +614,11 @@ public class BNetwork {
 
                 Arrays.fill(factorVariables, false);
 
-                for (int j = 0; j < factors.size(); j++) {
-                    if (factors.get(j).variableExists(variable)) {
-                        int[] variables = factors.get(j).variables;
-                        for (int k = 0; k < variables.length; k++) {
-                            factorVariables[variables[k]] = true;
+                for (Factor factor : factors) {
+                    if (factor.variableExists(variable)) {
+                        int[] variables = factor.variables;
+                        for (int j : variables) {
+                            factorVariables[j] = true;
                         }
                     }
                 }
@@ -630,17 +629,17 @@ public class BNetwork {
 
                 for (int j = 0; j < factorVariables.length; j++) {
                     if (factorVariables[i]) {
-                        factorCreatedLength *= this.variables[j].getLength();
+                        factorCreatedLength *= this.variablesLengths[j];
                     }
                 }
 
                 if (minFactorCreatedLength == -1 || minFactorCreatedLength > factorCreatedLength) {
-                    choosedIndex = i;
+                    chooseIndex = i;
                     minFactorCreatedLength = factorCreatedLength;
                 }
             }
 
-            return choosedIndex;
+            return chooseIndex;
         });
     }
 }

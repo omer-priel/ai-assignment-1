@@ -55,7 +55,7 @@ public class Factor {
         // get the probabilities length
         int factorProbabilitiesLength = 1;
         for (int i = 0; i < factorVariables.length; i++) {
-            factorProbabilitiesLength *= network.variables[factorVariables[i]].getLength();
+            factorProbabilitiesLength *= network.variablesLengths[factorVariables[i]];
         }
 
         // get the probabilities
@@ -96,7 +96,7 @@ public class Factor {
 
                 cptIndexA += values[indexesA[i]] * jumpA;
 
-                jumpA *= network.variables[variable].getLength();
+                jumpA *= network.variablesLengths[variable];
             }
 
             for (int i = 0; i < factorB.variables.length; i++) {
@@ -104,7 +104,7 @@ public class Factor {
 
                 cptIndexB += values[indexesB[i]] * jumpB;
 
-                jumpB *= network.variables[variable].getLength();
+                jumpB *= network.variablesLengths[variable];
             }
 
             double probabilityA = factorA.probabilities[cptIndexA];
@@ -115,7 +115,7 @@ public class Factor {
 
             // move to next value
             int k = 0;
-            while (k < values.length && values[k] == network.variables[factorVariables[k]].getLength() - 1) {
+            while (k < values.length && values[k] == network.variablesLengths[factorVariables[k]] - 1) {
                 values[k] = 0;
                 k++;
             }
@@ -140,17 +140,17 @@ public class Factor {
         int factorVariableIndex = 0;
         while (factor.variables[factorVariableIndex] != variable) {
             variables[factorVariableIndex] = factor.variables[factorVariableIndex];
-            variablesBeforeLength *= network.variables[factor.variables[factorVariableIndex]].getLength();
+            variablesBeforeLength *= network.variablesLengths[factor.variables[factorVariableIndex]];
             factorVariableIndex++;
         }
 
-        variableLength = network.variables[factor.variables[factorVariableIndex]].getLength();
+        variableLength = network.variablesLengths[factor.variables[factorVariableIndex]];
         factorVariableIndex++;
 
         while (factorVariableIndex < factor.variables.length) {
             variables[factorVariableIndex - 1] = factor.variables[factorVariableIndex];
 
-            variablesAfterLength *= network.variables[factor.variables[factorVariableIndex]].getLength();
+            variablesAfterLength *= network.variablesLengths[factor.variables[factorVariableIndex]];
             factorVariableIndex++;
         }
 
