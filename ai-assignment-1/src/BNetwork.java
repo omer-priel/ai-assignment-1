@@ -244,7 +244,7 @@ public class BNetwork {
             this.printResult(query.results);
         }
 
-        // check if the result in CPT
+        // check if the probability in the CPT
         int[] parents = this.parents[query.queryVariable];
         boolean inCPT = parents.length == query.evidencesVariables.length;
         for (int i = 0; i < query.evidencesVariables.length && inCPT; i++) {
@@ -273,6 +273,7 @@ public class BNetwork {
 
             return;
         }
+
         // call query type
         switch (query.type) {
             case 1:
@@ -504,7 +505,7 @@ public class BNetwork {
         return factors;
     }
 
-    private void callBasedVariableElimination(Query query, Comparator<Integer> hiddenSortingComparator) {
+    private void callBasedVariableElimination(Query query, HiddenChooser hiddenChooser) {
         // init
         List<Integer> hiddenVariables = Arrays.stream(getHidden(query)).boxed().collect(Collectors.toList());
 
@@ -519,12 +520,18 @@ public class BNetwork {
         List<Factor> factors = variableEliminationCreateFactors(query, net);
 
         // ordering the hidden variables
-        hiddenVariables.sort(hiddenSortingComparator);
+        hiddenVariables.sort((variableAKey, variableBKey) -> {
+            Variable variableA = getVariable(variableAKey);
+            Variable variableB = getVariable(variableBKey);
+
+            return variableA.getName().compareTo(variableB.getName());
+        });
 
         // Variable Elimination
         while (!hiddenVariables.isEmpty()) {
-            int hidden = hiddenVariables.get(0);
-            hiddenVariables.remove(0);
+            int hiddenIndex = hiddenChooser.choose(hiddenVariables, factors);
+            int hidden = hiddenVariables.get(hiddenIndex);
+            hiddenVariables.remove(hiddenIndex);
 
             // collect factors with the hidden to single factor
             List<Factor> factorsToJoin = new ArrayList<>(factors.size());
@@ -579,38 +586,61 @@ public class BNetwork {
         this.calcProbability(query, lastFactor.probabilities);
     }
 
+    /**
+     * does query using Variable Elimination
+     *
+     * @param query
+     */
     private void callQuery2(Query query){
-        callBasedVariableElimination(query, (variableAKey, variableBKey) -> {
-            Variable variableA = getVariable(variableAKey);
-            Variable variableB = getVariable(variableBKey);
-
-            return variableA.getName().compareTo(variableB.getName());
-        });
+        callBasedVariableElimination(query, (hiddenVariables, factors) -> 0);
     }
 
     /**
      * does query using Variable Elimination
      *
-     * Ordering the hidden variables rules:
-     * If A has less dependent variables than B, choose A
-     * If B has less dependent variables than A, choose B
-     * If B has more values than A, choose B
-     * Else, choose A
+     * Min-fill: Choose vertices to minimize the size of the factor that will be added to the graph.
      *
      * @param query
      */
     private void callQuery3(Query query) {
-        callBasedVariableElimination(query, (variableAKey, variableBKey) -> {
-            Variable variableA = getVariable(variableAKey);
-            Variable variableB = getVariable(variableBKey);
+        callBasedVariableElimination(query, (hiddenVariables, factors) -> {
 
-            int diff = this.parents[variableAKey].length - this.parents[variableBKey].length;
+            int minFactorCreatedLength = -1;
+            int choosedIndex = -1;
 
-            if (diff != 0) {
-                return (diff > 0) ? 1 : -1;
+            boolean[] factorVariables = new boolean[this.variables.length];
+
+            for (int i = 0; i < hiddenVariables.size(); i++) {
+                int variable = hiddenVariables.get(i);
+
+                Arrays.fill(factorVariables, false);
+
+                for (int j = 0; j < factors.size(); j++) {
+                    if (factors.get(j).variableExists(variable)) {
+                        int[] variables = factors.get(j).variables;
+                        for (int k = 0; k < variables.length; k++) {
+                            factorVariables[variables[k]] = true;
+                        }
+                    }
+                }
+
+                factorVariables[variable] = false;
+
+                int factorCreatedLength = 1;
+
+                for (int j = 0; j < factorVariables.length; j++) {
+                    if (factorVariables[i]) {
+                        factorCreatedLength *= this.variables[j].getLength();
+                    }
+                }
+
+                if (minFactorCreatedLength == -1 || minFactorCreatedLength > factorCreatedLength) {
+                    choosedIndex = i;
+                    minFactorCreatedLength = factorCreatedLength;
+                }
             }
 
-            return (variableA.getLength() > variableB.getLength()) ? 1 : -1;
+            return choosedIndex;
         });
     }
 }
