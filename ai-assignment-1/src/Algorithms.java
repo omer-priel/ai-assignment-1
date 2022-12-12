@@ -271,22 +271,20 @@ public class Algorithms {
             index++;
         }
 
-        for (int i = 0; i < groupB.length; i++) {
+        for (int k : groupB) {
             boolean inA = false;
             for (int j = 0; j < groupA.length && !inA; j++) {
-                inA = groupB[i] == groupA[j];
+                inA = k == groupA[j];
             }
 
             if (!inA) {
-                union[index] = groupB[i];
+                union[index] = k;
                 index++;
             }
         }
 
         int[] fixedUnion = new int[index];
-        for (int i = 0; i < fixedUnion.length; i++) {
-            fixedUnion[i] = union[i];
-        }
+        System.arraycopy(union, 0, fixedUnion, 0, fixedUnion.length);
 
         return fixedUnion;
     }
@@ -297,8 +295,8 @@ public class Algorithms {
 
         // get the probabilities length
         int factorProbabilitiesLength = 1;
-        for (int i = 0; i < factorVariables.length; i++) {
-            factorProbabilitiesLength *= network.variablesLengths[factorVariables[i]];
+        for (int factorVariable : factorVariables) {
+            factorProbabilitiesLength *= network.variablesLengths[factorVariable];
         }
 
         // get the probabilities

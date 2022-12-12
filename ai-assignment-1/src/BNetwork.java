@@ -1,7 +1,6 @@
 import java.util.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.stream.Collectors;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;

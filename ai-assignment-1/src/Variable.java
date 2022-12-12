@@ -1,7 +1,7 @@
 public class Variable {
     // Members
-    private String name;
-    private String[] values;
+    private final String name;
+    private final String[] values;
 
     public Variable(String name, String[] values) {
         this.name = name;
@@ -17,7 +17,7 @@ public class Variable {
      * get value key by name
      *
      * @param name the name of the value
-     * @return
+     * @return the index of the value in values
      */
     public int getValueKey(String name) {
         for (int i = 0; i < this.values.length; i++) {

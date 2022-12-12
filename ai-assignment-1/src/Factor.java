@@ -1,4 +1,3 @@
-import java.util.Arrays;
 public class Factor {
     public int[] variables;
     public double[] probabilities;
@@ -10,8 +9,8 @@ public class Factor {
 
     // getters
     public boolean variableExists(int variable) {
-        for (int i = 0; i < this.variables.length; i++) {
-            if (this.variables[i] == variable) {
+        for (int j : this.variables) {
+            if (j == variable) {
                 return true;
             }
         }
