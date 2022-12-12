@@ -62,7 +62,7 @@ class Ex1 {
       String queryInput = scanner.nextLine();
       Query query = new Query(network, queryInput);
 
-      network.callQuery(query);
+      Algorithms.callQuery(query, network);
     }
   }
 }
