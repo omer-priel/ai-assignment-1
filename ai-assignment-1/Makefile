@@ -15,7 +15,7 @@ start: build
 	cd test-build && $(JAVA) Ex1
 
 test: build
-	cd test-build && $(JAVA) Ex1 < input.txt > my_output.txt
+	cd test-build && $(JAVA) Ex1
 
 test-1: build
 	cd test-build && $(JAVA) Ex1 < ../inputs/alarm_net_input.txt
@@ -23,6 +23,13 @@ test-1: build
 test-2: build
 	cd test-build && $(JAVA) Ex1 < ../inputs/big_net_input.txt
 
+test-3: build
+	cd test-build && $(JAVA) Ex1 < ../inputs/alarm_net_2_input.txt
+
+test-4: build
+	cd test-build && $(JAVA) Ex1 < ../inputs/big_net_2_input.txt
+
 publish:
 	rm -rf ../207964859.zip
-	zip ../207964859.zip src/*.java
+	cd src && zip ../../207964859.zip *.java
+	cd .. && zip 207964859.zip 207964859.docx
